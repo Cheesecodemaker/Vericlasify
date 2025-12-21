@@ -2,23 +2,11 @@
 
 Combines Git with Ethereum blockchain for integrity protection.
 
-## Installation
-
-\`\`\`bash
-npm install
-chmod +x index.js install.sh
-./install.sh
-\`\`\`
-
-## Usage
-
-\`\`\`bash
 # Start blockchain (separate terminal)
 ganache-cli
 
 # Run Vericlasify
 node index.js
-\`\`\`
 
 ## Commands
 
