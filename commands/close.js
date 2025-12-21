@@ -21,47 +21,47 @@ async function init() {
 
 async function run() {
     const spinner = ora('Closing...').start();
-    
+
     try {
         await init();
-        
+
         if (sg.length === 0) {
             spinner.fail('Nothing staged');
             return;
         }
-        
+
         spinner.stop();
-        const {confirm} = await inquirer.prompt([{
+        const { confirm } = await inquirer.prompt([{
             type: 'confirm',
             name: 'confirm',
             message: `Close ${sg.length} Storage Units permanently?`,
             default: false
         }]);
-        
+
         if (!confirm) {
             console.log(chalk.yellow('Cancelled'));
             return;
         }
-        
+
         spinner.start('Processing...');
-        
+
         const [openRoot, closedRoot, openL, closedL] = files.createSGTrees(
-            sg.map(su => ({...su, closed: true}))
+            sg.map(su => ({ ...su, closed: true }))
         );
-        
+
         const today = new Date();
         let closedWitness, closedSG;
-        
+
         if (closedRoot !== null) {
             [closedWitness, closedSG] = ethLogic.addToTree(closedRoot, mc, true, today, sg);
         } else {
             spinner.fail('Failed');
             return;
         }
-        
+
         const date = today.toISOString();
         const [mkcHash, receipt, bktimestamp] = await ethLogic.registerMC(mc);
-        
+
         for (let el of sg) {
             let o = {
                 path: el.path,
@@ -76,24 +76,24 @@ async function run() {
                 closedstoragegroup: closedSG
             };
             files.createRegistration(o);
-            
+
             gitLogic.changeDir(el.path);
-            const pinesu = files.readPineSUFile();
-            pinesu.offhash.closed = true;
-            pinesu.offhash.bcregnumber = (pinesu.offhash.bcregnumber || 0) + 1;
-            pinesu.offhash.bcregtime = bktimestamp;
-            await files.savePineSUJSON(pinesu);
-            
+            const vericl = files.readVericlFile();
+            vericl.offhash.closed = true;
+            vericl.offhash.bcregnumber = (vericl.offhash.bcregnumber || 0) + 1;
+            vericl.offhash.bcregtime = bktimestamp;
+            await files.saveVericlJSON(vericl);
+
             await gitLogic.makeRegistrationCommit(el.path);
         }
-        
+
         gitLogic.changeDir('.');
         files.flushSG();
         files.saveTree(mc);
-        
+
         spinner.succeed('Closed!');
         console.log(chalk.yellow('\n⚠️  These SUs are now immutable'));
-        
+
     } catch (error) {
         spinner.fail('Close failed');
         throw error;

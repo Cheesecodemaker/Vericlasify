@@ -6,14 +6,14 @@ const gitLogic = require('../logic/gitLogic');
 
 async function run() {
     try {
-        if (!files.fileExists('.pinesu.json')) {
+        if (!files.fileExists('.vericl.json')) {
             console.log(chalk.red('✖ Not a Storage Unit'));
             return;
         }
-        
-        const pinesu = files.readPineSUFile();
-        
-        const fileChoices = pinesu.filelist
+
+        const vericl = files.readVericlFile();
+
+        const fileChoices = vericl.filelist
             .filter(item => !item.endsWith(':'))
             .map(item => {
                 const [filepath, hash] = item.split(':');
@@ -22,29 +22,29 @@ async function run() {
                     value: { path: filepath, hash: hash }
                 };
             });
-        
+
         if (fileChoices.length === 0) {
             console.log(chalk.yellow('No files in SU'));
             return;
         }
-        
-        const {selectedFile} = await inquirer.prompt([{
+
+        const { selectedFile } = await inquirer.prompt([{
             type: 'list',
             name: 'selectedFile',
             message: 'Select file:',
             choices: fileChoices,
             pageSize: 15
         }]);
-        
+
         const spinner = ora('Checking...').start();
-        
+
         if (!files.fileExists(selectedFile.path)) {
             spinner.fail('File deleted');
             return;
         }
-        
+
         const currentHash = gitLogic.fileHashSync(selectedFile.path);
-        
+
         if (currentHash !== selectedFile.hash) {
             spinner.fail('File modified');
             console.log(chalk.red('\n✖ Hash mismatch'));
@@ -52,11 +52,11 @@ async function run() {
             console.log(chalk.gray('  Current: ') + currentHash);
             return;
         }
-        
+
         spinner.succeed('File is valid!');
         console.log(chalk.green('\n✔ ' + selectedFile.path));
         console.log(chalk.gray('  Hash: ') + selectedFile.hash.substring(0, 20) + '...');
-        
+
     } catch (error) {
         console.error(chalk.red('✖'), error.message);
     }

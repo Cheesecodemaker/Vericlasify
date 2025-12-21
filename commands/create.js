@@ -1,6 +1,6 @@
 const chalk = require('chalk');
 const ora = require('ora');
-const {v4: uuidv4} = require("uuid");
+const { v4: uuidv4 } = require("uuid");
 const files = require("../lib/files");
 const ethLogic = require("../logic/ethLogic");
 const gitLogic = require("../logic/gitLogic");
@@ -21,37 +21,37 @@ async function run() {
     try {
         await init();
         const spinner = ora('Creating...').start();
-        
+
         if (files.fileExists('.git')) {
             spinner.info('Git exists');
         } else {
             gitLogic.init();
         }
-        
-        if (files.fileExists('.pinesu.json')) {
+
+        if (files.fileExists('.vericl.json')) {
             spinner.fail('Already exists');
             return;
         }
-        
+
         const filelist = await gitLogic.calculateSU();
         if (!filelist || filelist[0] === "null") {
             spinner.fail('No files found');
             return;
         }
-        
+
         const merkleroot = gitLogic.calculateTree(filelist);
         let remote = await gitLogic.getRemote();
         if (!remote || remote.length === 0) remote = "localhost";
-        
+
         spinner.stop();
         const details = await inquirer.askSUDetails(
             files.getCurrentDirectoryBase(),
             remote
         );
-        
+
         spinner.start('Saving...');
-        
-        const pineSUFile = {
+
+        const vericlFile = {
             hash: null,
             header: {
                 uuid: uuidv4(),
@@ -74,25 +74,25 @@ async function run() {
                 closed: false
             }
         };
-        
-        pineSUFile.hash = gitLogic.calculateHeader(pineSUFile.header);
-        await files.savePineSUJSON(pineSUFile);
-        
+
+        vericlFile.hash = gitLogic.calculateHeader(vericlFile.header);
+        await files.saveVericlJSON(vericlFile);
+
         try {
             if (details.remote !== "localhost") {
                 await gitLogic.setRemote(details.remote);
             }
-        } catch (e) {}
-        
+        } catch (e) { }
+
         await gitLogic.addAllSU();
         await gitLogic.commitSU("Storage Unit created");
-        
+
         spinner.succeed('Created!');
         console.log(chalk.cyan('\n📊 Storage Unit:'));
         console.log(chalk.gray('  Name: ') + details.name);
-        console.log(chalk.gray('  UUID: ') + pineSUFile.header.uuid);
+        console.log(chalk.gray('  UUID: ') + vericlFile.header.uuid);
         console.log(chalk.gray('  Files: ') + filelist.length);
-        
+
     } catch (error) {
         spinner.fail('Failed');
         throw error;
