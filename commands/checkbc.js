@@ -18,78 +18,84 @@ async function init() {
 }
 
 async function run() {
+    // Init first (has inquirer prompts) before starting spinner
+    await init();
+
     const spinner = ora('Verifying...').start();
-    
+
     try {
-        await init();
-        
+
         if (!files.fileExists('.pinesu.json')) {
             spinner.fail('No Storage Unit');
             return;
         }
-        
+
         if (!files.fileExists('.regpinesu.json')) {
             spinner.fail('Not registered');
             console.log(chalk.yellow('💡 Use syncwbc first'));
             return;
         }
-        
+
+        spinner.text = 'Reading files...';
         const pinesu = files.readPineSUFile();
         const registration = files.readRegistrationFile();
-        
+
         spinner.text = 'Checking blockchain...';
-        
+
+        // Use wallet address (w1) for verification since owner may not be set
+        const ownerAddress = pinesu.header.owner || w1;
+
         const [isValid, owner] = await ethLogic.verifyHash(
             registration.txhash,
             registration.bkheight,
             registration.mkcalroot,
-            pinesu.header.owner
+            ownerAddress
         );
-        
+
         if (!isValid) {
             spinner.fail('Blockchain check failed');
             return;
         }
-        
+
         spinner.text = 'Computing hashes...';
-        
+
         const filelist = await gitLogic.calculateSU();
         const computedMerkleRoot = gitLogic.calculateTree(filelist);
-        
+
         if (computedMerkleRoot !== pinesu.header.merkleroot) {
             spinner.fail('Files modified!');
             console.log(chalk.red('✖ Integrity violation detected'));
             return;
         }
-        
+
         const computedSUHash = gitLogic.calculateHeader(pinesu.header);
-        
+
         if (computedSUHash !== pinesu.hash) {
             spinner.fail('Metadata tampered!');
             return;
         }
-        
+
         spinner.text = 'Verifying proof...';
-        
+
         const [proofValid, proofDetails] = treelist.validateProof(pinesu.hash, registration);
-        
+
         if (!proofValid) {
             spinner.fail('Proof invalid');
             return;
         }
-        
+
         spinner.succeed('Integrity verified!');
-        
+
         console.log(chalk.green('\n✔ Storage Unit is valid'));
         console.log(chalk.cyan('\n📊 Details:'));
         console.log(chalk.gray('  Files: ') + filelist.length);
         console.log(chalk.gray('  Block: ') + registration.bkheight);
         console.log(chalk.gray('  TX: ') + registration.txhash);
-        
+
         if (pinesu.offhash.closed) {
             console.log(chalk.yellow('\n🔒 CLOSED (immutable)'));
         }
-        
+
     } catch (error) {
         spinner.fail('Verification failed');
         throw error;

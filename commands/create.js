@@ -18,9 +18,9 @@ async function init() {
 }
 
 async function run() {
-    const spinner = ora('Creating...').start();
     try {
         await init();
+        const spinner = ora('Creating...').start();
         
         if (files.fileExists('.git')) {
             spinner.info('Git exists');

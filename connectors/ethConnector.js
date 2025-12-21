@@ -36,23 +36,34 @@ class EthConnector {
         return receipt;
     }
 
-    async getBlock(blockNumber){
+    async getBlock(blockNumber) {
         return await this.#web3.eth.getBlock(blockNumber);
     }
 
     async verifyHash(transactionHash, blockNum, root, w1) {
-        const block = await this.#web3.eth.getBlock(blockNum)
-        console.log(block);
-        if (block.transactions.includes(transactionHash)) {
-            const res = await this.#web3.eth.getTransaction(transactionHash)
-            console.log(res);
-            if (res.input == "0x" + root && res.from.toUpperCase() == w1.toUpperCase()) {
-                return [res.from.toUpperCase() + w1.toUpperCase(), true];
-            } else {
-                return [res.from.toUpperCase() + w1.toUpperCase(), false];
+        try {
+            const block = await this.#web3.eth.getBlock(blockNum);
+
+            if (!block) {
+                console.log('Block not found:', blockNum);
+                return [false, null];
             }
-        } else {
-            return [res.from.toUpperCase() + w1.toUpperCase(), false];
+
+            if (block.transactions.includes(transactionHash)) {
+                const res = await this.#web3.eth.getTransaction(transactionHash);
+
+                if (res.input == "0x" + root && res.from.toUpperCase() == w1.toUpperCase()) {
+                    return [true, res.from];
+                } else {
+                    return [false, res.from];
+                }
+            } else {
+                console.log('Transaction not in block');
+                return [false, null];
+            }
+        } catch (error) {
+            console.log('Verify error:', error.message);
+            return [false, null];
         }
     }
 }

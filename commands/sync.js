@@ -19,19 +19,19 @@ async function init() {
 }
 
 async function run() {
-    const spinner = ora('Syncing...').start();
-    
+    let spinner;
     try {
         await init();
-        
+        spinner = ora('Syncing...').start();
+
         if (sg.length === 0) {
             spinner.fail('Nothing staged');
             return;
         }
-        
+
         const [openRoot, closedRoot, openL, closedL] = files.createSGTrees(sg);
         const today = new Date();
-        
+
         let openSG, openWitness;
         if (openRoot != null) {
             [openWitness, openSG] = ethLogic.addToTree(openRoot, mc, false, today, openL);
@@ -39,12 +39,12 @@ async function run() {
             spinner.fail('No open SUs');
             return;
         }
-        
+
         const date = today.toISOString();
         const [mkcHash, receipt, bktimestamp] = await ethLogic.registerMC(mc);
-        
+
         spinner.text = 'Creating registration files...';
-        
+
         for (let el of openL) {
             let o = {
                 path: el.path,
@@ -61,19 +61,19 @@ async function run() {
             files.createRegistration(o);
             await gitLogic.makeRegistrationCommit(el.path);
         }
-        
+
         gitLogic.changeDir('.');
         files.flushSG();
         files.saveTree(mc);
-        
+
         spinner.succeed('Synced to blockchain!');
         console.log(chalk.cyan('\n📊 Transaction:'));
         console.log(chalk.gray('  Hash: ') + receipt.transactionHash);
         console.log(chalk.gray('  Block: ') + receipt.blockNumber);
         console.log(chalk.gray('  SUs: ') + openL.length);
-        
+
     } catch (error) {
-        spinner.fail('Sync failed');
+        if (spinner) spinner.fail('Sync failed');
         throw error;
     }
 }
