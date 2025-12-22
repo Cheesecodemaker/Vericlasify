@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "server": "node server.js",
-    "ui": "node server.js"
+    "ui": "node server.js",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
@@ -28,5 +29,8 @@
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }

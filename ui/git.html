@@ -31,6 +31,12 @@
 
         <div class="form-panel">
             <div class="form-group">
+                <label for="targetPath">Directory Path</label>
+                <input type="text" id="targetPath" placeholder="C:\path\to\your\storage\unit">
+                <p class="form-hint">Path to the storage unit directory (with .pinesu.json)</p>
+            </div>
+
+            <div class="form-group">
                 <label for="gitCommand">Git Command</label>
                 <input type="text" id="gitCommand" placeholder="status"
                     onkeypress="if(event.key==='Enter') executeGit()">
@@ -101,6 +107,7 @@
 
         async function executeGit() {
             const btn = document.querySelector('.execute-btn');
+            const targetPath = document.getElementById('targetPath').value.trim();
             const command = document.getElementById('gitCommand').value.trim();
 
             if (!command) {
@@ -113,7 +120,7 @@
 
             log(`$ git ${command}`, 'info');
 
-            const result = await apiCall('/git', 'POST', { command });
+            const result = await apiCall('/git', 'POST', { command, targetPath });
 
             if (result.success) {
                 // Split output into lines and log each

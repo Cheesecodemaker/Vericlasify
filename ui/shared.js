@@ -93,7 +93,7 @@ async function checkServerStatus() {
     return false;
   } else {
     log('✔ Connected to server', 'success');
-    log(`📁 Working dir: ${result.cwd}`, 'info');
+    log(`📁 Working dir: ${result.serverDir || result.data?.serverDir}`, 'info');
     if (result.hasPinesu) {
       log('📦 Storage unit found', 'info');
     }

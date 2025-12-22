@@ -189,6 +189,75 @@ app.post('/api/stage', async (req, res) => {
     }
 });
 
+// Update storage unit (recalculate hashes after modifications)
+app.post('/api/update', async (req, res) => {
+    try {
+        const { targetPath } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        const originalCwd = process.cwd();
+        process.chdir(workingDir);
+
+        try {
+            if (!files.fileExists('.pinesu.json')) {
+                process.chdir(originalCwd);
+                return res.json({ success: false, error: 'No storage unit found. Create one first.' });
+            }
+
+            const pinesu = files.readPineSUFile();
+            const oldHash = pinesu.hash;
+
+            // Get current file list
+            const fileList = [];
+            files.getFilelist('.', fileList);
+
+            // Calculate new content hash
+            const newHash = calculateContentHash(fileList);
+
+            // Update pinesu with new values
+            pinesu.header.mdtime = new Date().toISOString();
+            pinesu.filelist = fileList;
+            pinesu.hash = newHash;
+
+            // Save previous hash info
+            pinesu.header.prevhash = oldHash;
+
+            await files.savePineSUJSON(pinesu);
+
+            process.chdir(originalCwd);
+
+            const hasChanged = oldHash !== newHash;
+
+            res.json({
+                success: true,
+                data: {
+                    files: fileList.length,
+                    oldHash,
+                    newMerkleroot: newHash,
+                    changed: hasChanged,
+                    message: hasChanged
+                        ? 'Storage unit updated with new changes.'
+                        : 'No changes detected, hash unchanged.'
+                }
+            });
+        } catch (error) {
+            process.chdir(originalCwd);
+            throw error;
+        }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
 // Sync to blockchain
 app.post('/api/sync', async (req, res) => {
     try {
@@ -322,6 +391,133 @@ app.post('/api/checkbc', async (req, res) => {
     }
 });
 
+// Check individual file integrity
+app.post('/api/checkfile', async (req, res) => {
+    try {
+        const { filePath, ethHost } = req.body;
+
+        if (!filePath || filePath.trim() === '') {
+            return res.json({ success: false, error: 'File path is required.' });
+        }
+
+        const targetFile = path.resolve(filePath.trim());
+
+        if (!fs.existsSync(targetFile)) {
+            return res.json({ success: false, error: `File not found: ${targetFile}` });
+        }
+
+        if (!fs.lstatSync(targetFile).isFile()) {
+            return res.json({ success: false, error: 'Path is not a file.' });
+        }
+
+        // Calculate current file hash
+        const content = fs.readFileSync(targetFile);
+        const currentHash = crypto.createHash('sha256').update(content).digest('hex');
+
+        // Find parent directory with .pinesu.json
+        let currentDir = path.dirname(targetFile);
+        let pinesuPath = null;
+        let storageUnitDir = null;
+
+        for (let i = 0; i < 10; i++) {
+            const testPath = path.join(currentDir, '.pinesu.json');
+            if (fs.existsSync(testPath)) {
+                pinesuPath = testPath;
+                storageUnitDir = currentDir;
+                break;
+            }
+            const parent = path.dirname(currentDir);
+            if (parent === currentDir) break;
+            currentDir = parent;
+        }
+
+        if (!pinesuPath) {
+            return res.json({
+                success: true,
+                data: {
+                    path: targetFile,
+                    currentHash,
+                    inStorageUnit: false,
+                    modified: null,
+                    message: 'File is not part of any registered storage unit.'
+                }
+            });
+        }
+
+        // Read pinesu file
+        const pinesu = JSON.parse(fs.readFileSync(pinesuPath, 'utf8'));
+        const relativePath = path.relative(storageUnitDir, targetFile).replace(/\\/g, '/');
+
+        // Find the file entry with its original hash
+        let originalHash = null;
+        let fileFound = false;
+
+        if (pinesu.filelist) {
+            for (const entry of pinesu.filelist) {
+                // Entry format can be "path" or "path:hash"
+                const parts = entry.split(':');
+                const entryPath = parts[0].replace(/\\/g, '/');
+
+                if (entryPath === relativePath ||
+                    entryPath === './' + relativePath ||
+                    entryPath === relativePath.replace(/^\.\//, '')) {
+                    fileFound = true;
+                    // If entry has hash stored
+                    if (parts.length > 1 && parts[1].length === 64) {
+                        originalHash = parts[1];
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Calculate if file was modified
+        // If we don't have individual file hash, recalculate from storage unit hash
+        let modified = false;
+        let message = '';
+
+        if (fileFound) {
+            if (originalHash) {
+                // We have original hash, compare directly
+                modified = (currentHash !== originalHash);
+                message = modified
+                    ? '⚠️ FILE HAS BEEN MODIFIED! Hash mismatch detected.'
+                    : '✓ File integrity verified - no modifications detected.';
+            } else {
+                // No individual file hash stored, need to check overall storage unit
+                // Recalculate storage unit hash and compare
+                const fileList = [];
+                files.getFilelist(storageUnitDir, fileList);
+                const newStorageHash = calculateContentHash(fileList.map(f => path.join(storageUnitDir, f)));
+
+                modified = (newStorageHash !== pinesu.hash);
+                message = modified
+                    ? '⚠️ Storage unit has been modified! (Individual file hash not tracked)'
+                    : '✓ Storage unit integrity verified.';
+            }
+        } else {
+            message = '⚠️ File not found in registered file list - may be a new file.';
+        }
+
+        res.json({
+            success: true,
+            data: {
+                path: targetFile,
+                currentHash,
+                originalHash: originalHash || 'Not individually tracked',
+                modified,
+                inStorageUnit: fileFound,
+                storageUnit: pinesu.header?.name || 'Unknown',
+                uuid: pinesu.header?.uuid,
+                storageUnitHash: pinesu.hash,
+                message
+            }
+        });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
 // Settings
 app.get('/api/settings', (req, res) => {
     const config = readConfig();
@@ -340,14 +536,60 @@ app.get('/api/settings', (req, res) => {
 app.post('/api/settings', (req, res) => {
     const { wallet1, wallet2, privateKey, pkey } = req.body;
     const w1 = wallet1 ? wallet1.trim() : '';
+    const w2 = wallet2 ? wallet2.trim() : w1;
     const pk = (privateKey || pkey) ? (privateKey || pkey).trim() : '';
 
     if (!w1 || !w1.startsWith('0x') || w1.length !== 42) {
         return res.json({ success: false, error: 'Invalid wallet format.' });
     }
 
-    writeConfig({ wallet1: w1, wallet2: wallet2?.trim() || w1, pkey: pk });
-    res.json({ success: true, data: { message: 'Saved' } });
+    writeConfig({ wallet1: w1, wallet2: w2, pkey: pk });
+    res.json({
+        success: true,
+        data: {
+            message: 'Saved',
+            wallet1: `${w1.slice(0, 10)}...${w1.slice(-6)}`,
+            wallet2: `${w2.slice(0, 10)}...${w2.slice(-6)}`,
+            hasPrivateKey: !!pk
+        }
+    });
+});
+
+// Git commands endpoint
+app.post('/api/git', async (req, res) => {
+    try {
+        const { command, targetPath } = req.body;
+
+        if (!command) {
+            return res.json({ success: false, error: 'Command required.' });
+        }
+
+        // Use targetPath or current directory with .pinesu.json
+        let workingDir = targetPath && targetPath.trim() !== '' ? targetPath.trim() : process.cwd();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        // Parse the git command
+        const args = command.split(' ').filter(s => s.trim() !== '');
+
+        const simpleGit = require('simple-git');
+        const git = simpleGit(workingDir);
+
+        let output = '';
+
+        try {
+            // Execute the git command
+            output = await git.raw(args);
+        } catch (gitError) {
+            output = gitError.message || 'Git command failed';
+        }
+
+        res.json({ success: true, output: output || 'Command executed (no output)' });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
 });
 
 app.get('/', (req, res) => {
@@ -357,7 +599,7 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════╗
-║   🚀 Vericlasify Server - http://localhost:${PORT}         ║
+║   🚀 Vericlasify Server - http://localhost:${PORT}       ║
 ╚══════════════════════════════════════════════════════════╝`);
 });
 

@@ -90,15 +90,33 @@
 
             if (result.success) {
                 log('');
-                log('═══════════════════════════════════════', 'success');
-                log('   ✅ FILE INTEGRITY VERIFIED', 'success');
-                log('═══════════════════════════════════════', 'success');
+                if (result.data.modified === true) {
+                    log('═══════════════════════════════════════', 'error');
+                    log('   ⚠️ FILE HAS BEEN MODIFIED!', 'error');
+                    log('═══════════════════════════════════════', 'error');
+                } else if (result.data.modified === false) {
+                    log('═══════════════════════════════════════', 'success');
+                    log('   ✅ FILE INTEGRITY VERIFIED', 'success');
+                    log('═══════════════════════════════════════', 'success');
+                } else {
+                    log('═══════════════════════════════════════', 'warning');
+                    log('   ⚠️ FILE NOT IN STORAGE UNIT', 'warning');
+                    log('═══════════════════════════════════════', 'warning');
+                }
                 log('');
                 log('📄 File Details:', 'info');
                 log(`   Path: ${result.data.path}`);
-                log(`   Hash: ${result.data.hash}`);
+                log(`   Current Hash: ${result.data.currentHash}`);
+                if (result.data.originalHash) {
+                    log(`   Original Hash: ${result.data.originalHash}`);
+                }
                 log(`   In Storage Unit: ${result.data.inStorageUnit ? 'Yes' : 'No'}`);
-                setStatus('Verified ✓', 'success');
+                if (result.data.storageUnit) {
+                    log(`   Storage Unit: ${result.data.storageUnit}`);
+                }
+                log('');
+                log(`📝 ${result.data.message}`, result.data.modified ? 'error' : 'success');
+                setStatus(result.data.modified ? 'Modified!' : 'Verified ✓', result.data.modified ? 'error' : 'success');
             } else {
                 log(`✖ ${result.error}`, 'error');
                 setStatus('Failed', 'error');
