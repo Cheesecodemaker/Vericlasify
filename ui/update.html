@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Storage Unit - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>🔄</span>
+                <h1>Update Storage Unit</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Recalculates the merkle root based on current file states.
+            Updates the <code>.pinesu.json</code> with new hashes while preserving version history.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="ethHost">Blockchain Host</label>
+                <input type="text" id="ethHost" value="http://127.0.0.1:8545">
+                <p class="form-hint">Ethereum node address for verification</p>
+            </div>
+
+            <button class="execute-btn" onclick="executeUpdate()">
+                Update Storage Unit
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        async function executeUpdate() {
+            const btn = document.querySelector('.execute-btn');
+            const ethHost = document.getElementById('ethHost').value;
+
+            setButtonLoading(btn, true);
+            setStatus('Updating...', 'warning');
+
+            log('Sending update request to server...', 'info');
+
+            const result = await apiCall('/update', 'POST', { ethHost });
+
+            if (result.success) {
+                log('✔ Storage Unit updated!', 'success');
+                log('');
+                log('📊 Changes:', 'info');
+                log(`   Total files: ${result.data.files}`);
+                log(`   New Merkle: ${result.data.newMerkleroot.substring(0, 20)}...`);
+                log('');
+                log('Next: Stage and sync to register changes', 'info');
+                setStatus('Updated', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, 'Update Storage Unit');
+        }
+    </script>
+</body>
+
+</html>

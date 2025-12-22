@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>⚙️</span>
+                <h1>Settings</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>Wallet Configuration:</strong> Configure your Ethereum wallet addresses and private key.
+            These are used for signing blockchain transactions and ownership verification.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="wallet1">Primary Wallet Address</label>
+                <input type="text" id="wallet1" placeholder="0x...">
+                <p class="form-hint">Your main Ethereum wallet address (at least 40 characters)</p>
+            </div>
+
+            <div class="form-group">
+                <label for="pkey">Private Key</label>
+                <input type="password" id="pkey" placeholder="Your private key">
+                <p class="form-hint">Private key for signing transactions (at least 64 characters)</p>
+            </div>
+
+            <div class="form-group">
+                <label for="wallet2">Secondary Wallet Address</label>
+                <input type="text" id="wallet2" placeholder="0x...">
+                <p class="form-hint">Secondary wallet for multi-sig or backup purposes</p>
+            </div>
+
+            <button class="execute-btn" onclick="saveSettings()">
+                💾 Save Settings
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        // Load existing settings on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            const result = await apiCall('/settings', 'GET');
+            if (result.success && result.data.configured) {
+                log('Existing configuration found', 'info');
+                log(`   Wallet 1: ${result.data.wallet1}`);
+                log(`   Wallet 2: ${result.data.wallet2}`);
+            }
+        });
+
+        async function saveSettings() {
+            const btn = document.querySelector('.execute-btn');
+            const wallet1 = document.getElementById('wallet1').value;
+            const pkey = document.getElementById('pkey').value;
+            const wallet2 = document.getElementById('wallet2').value;
+
+            // Client-side validation
+            if (!wallet1 || wallet1.length < 40) {
+                log('✖ Primary wallet must be at least 40 characters', 'error');
+                return;
+            }
+            if (!pkey || pkey.length < 64) {
+                log('✖ Private key must be at least 64 characters', 'error');
+                return;
+            }
+            if (!wallet2 || wallet2.length < 40) {
+                log('✖ Secondary wallet must be at least 40 characters', 'error');
+                return;
+            }
+
+            setButtonLoading(btn, true);
+            setStatus('Saving...', 'warning');
+
+            log('Saving wallet configuration...', 'info');
+
+            const result = await apiCall('/settings', 'POST', { wallet1, wallet2, pkey });
+
+            if (result.success) {
+                log('✔ Settings saved!', 'success');
+                log('');
+                log('⚙️ Configuration:', 'info');
+                log(`   Wallet 1: ${result.data.wallet1}`);
+                log(`   Wallet 2: ${result.data.wallet2}`);
+                log('   Private key: ********');
+                log('');
+                log('You can now use blockchain operations.', 'info');
+                setStatus('Saved', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '💾 Save Settings');
+        }
+    </script>
+</body>
+
+</html>

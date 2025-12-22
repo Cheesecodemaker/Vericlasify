@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stage Files - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>📦</span>
+                <h1>Stage Files</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Prepares your storage unit for blockchain synchronization.
+            Adds the current storage unit to the staging group for the next sync operation.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="targetPath">Directory Path</label>
+                <input type="text" id="targetPath" placeholder="C:\path\to\your\directory">
+                <p class="form-hint">Path to the storage unit directory</p>
+            </div>
+
+            <button class="execute-btn" onclick="executeStage()">
+                📦 Stage for Sync
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        async function executeStage() {
+            const btn = document.querySelector('.execute-btn');
+            const targetPath = document.getElementById('targetPath').value;
+
+            setButtonLoading(btn, true);
+            setStatus('Staging...', 'warning');
+
+            log('Sending stage request to server...', 'info');
+
+            const result = await apiCall('/stage', 'POST', { targetPath });
+
+            if (result.success) {
+                log('✔ Storage unit staged successfully!', 'success');
+                log('');
+                log('📦 Staging Complete:', 'info');
+                log(`   Path: ${result.data.path}`);
+                log(`   Hash: ${result.data.hash.substring(0, 20)}...`);
+                log('');
+                log('Next: Use "Sync" to push to blockchain', 'info');
+                setStatus('Staged', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '📦 Stage for Sync');
+        }
+    </script>
+</body>
+
+</html>

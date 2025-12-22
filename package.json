@@ -4,12 +4,16 @@
   "description": "Blockchain Git Protection",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "server": "node server.js",
+    "ui": "node server.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
     "chalk": "^4.1.2",
     "clear": "^0.1.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "figlet": "^1.6.0",
     "hidefile": "^3.0.0",
     "inquirer": "^8.2.5",

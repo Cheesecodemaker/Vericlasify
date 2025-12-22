@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Commands - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>📖</span>
+                <h1>Git Commands</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Execute custom Git commands within the storage unit directory.
+            Useful for checking status, viewing logs, or managing branches.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="gitCommand">Git Command</label>
+                <input type="text" id="gitCommand" placeholder="status"
+                    onkeypress="if(event.key==='Enter') executeGit()">
+                <p class="form-hint">Enter command without "git" prefix (e.g., "status", "log -5", "branch")</p>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                <button class="quick-cmd" onclick="runQuickCmd('status')">status</button>
+                <button class="quick-cmd" onclick="runQuickCmd('log -5 --oneline')">log</button>
+                <button class="quick-cmd" onclick="runQuickCmd('branch -a')">branches</button>
+                <button class="quick-cmd" onclick="runQuickCmd('diff --stat')">diff</button>
+                <button class="quick-cmd" onclick="runQuickCmd('remote -v')">remotes</button>
+            </div>
+
+            <button class="execute-btn" onclick="executeGit()">
+                📖 Run Command
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <style>
+        .quick-cmd {
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-cmd:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+    </style>
+
+    <script src="shared.js"></script>
+    <script>
+        function runQuickCmd(cmd) {
+            document.getElementById('gitCommand').value = cmd;
+            executeGit();
+        }
+
+        async function executeGit() {
+            const btn = document.querySelector('.execute-btn');
+            const command = document.getElementById('gitCommand').value.trim();
+
+            if (!command) {
+                log('✖ Please enter a git command', 'error');
+                return;
+            }
+
+            setButtonLoading(btn, true);
+            setStatus('Running...', 'warning');
+
+            log(`$ git ${command}`, 'info');
+
+            const result = await apiCall('/git', 'POST', { command });
+
+            if (result.success) {
+                // Split output into lines and log each
+                const lines = result.output.split('\n');
+                lines.forEach(line => {
+                    if (line.trim()) log(line);
+                });
+                setStatus('Done', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '📖 Run Command');
+        }
+    </script>
+</body>
+
+</html>

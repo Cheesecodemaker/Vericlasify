@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Close Storage Unit - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>🔒</span>
+                <h1>Close Storage Unit</h1>
+            </div>
+        </div>
+
+        <div class="info-box" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1);">
+            <strong style="color: #ef4444;">⚠️ Warning:</strong> Closing a storage unit is <strong>permanent</strong>.
+            Once closed, no further modifications can be made. The unit becomes immutable on the blockchain.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="ethHost">Blockchain Host</label>
+                <input type="text" id="ethHost" value="http://127.0.0.1:8545">
+                <p class="form-hint">Ethereum node address for registration</p>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="confirmClose">
+                    <span>I understand this action is irreversible</span>
+                </label>
+            </div>
+
+            <button class="execute-btn" style="background: linear-gradient(135deg, #ef4444, #dc2626);"
+                onclick="executeClose()">
+                🔒 Close Storage Unit Permanently
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        async function executeClose() {
+            const btn = document.querySelector('.execute-btn');
+            const confirmed = document.getElementById('confirmClose').checked;
+            const ethHost = document.getElementById('ethHost').value;
+
+            if (!confirmed) {
+                log('✖ Please confirm you understand this is irreversible', 'error');
+                return;
+            }
+
+            setButtonLoading(btn, true);
+            setStatus('Closing...', 'warning');
+
+            log('Sending close request to server...', 'info');
+
+            const result = await apiCall('/close', 'POST', { ethHost });
+
+            if (result.success) {
+                log('✔ Storage unit closed!', 'success');
+                log('');
+                log('🔒 Closure Details:', 'info');
+                log(`   Hash: ${result.data.hash.substring(0, 20)}...`);
+                log(`   Status: IMMUTABLE`);
+                log('');
+                log('This storage unit can no longer be modified.', 'warning');
+                setStatus('Closed', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '🔒 Close Storage Unit Permanently');
+        }
+    </script>
+</body>
+
+</html>

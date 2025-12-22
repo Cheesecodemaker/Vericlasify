@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Files - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>📤</span>
+                <h1>Export Files</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Exports selected files along with their verification proofs.
+            Creates a distributable package that can be independently verified.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label>Select Files to Export</label>
+                <div id="fileList" style="margin-top: 0.5rem;">
+                    <!-- Simulated file list -->
+                </div>
+            </div>
+
+            <button class="execute-btn" onclick="executeExport()">
+                📤 Export Selected Files
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        const sampleFiles = [
+            'README.md',
+            'src/index.js',
+            'src/utils.js',
+            'docs/paper.pdf',
+            'data/results.json'
+        ];
+
+        // Render file checkboxes
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = sampleFiles.map((file, i) => `
+        <label style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 6px; cursor: pointer;">
+          <input type="checkbox" name="exportFile" value="${file}" ${i < 2 ? 'checked' : ''}>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">${file}</span>
+        </label>
+      `).join('');
+        });
+
+        function executeExport() {
+            const btn = document.querySelector('.execute-btn');
+            const checked = document.querySelectorAll('input[name="exportFile"]:checked');
+            const files = Array.from(checked).map(c => c.value);
+
+            if (files.length === 0) {
+                log('✖ Please select at least one file', 'error');
+                return;
+            }
+
+            setButtonLoading(btn, true);
+            setStatus('Exporting...', 'warning');
+
+            log(`Exporting ${files.length} file(s)...`, 'info');
+
+            simulateExecution(() => {
+                files.forEach(f => log(`   Including: ${f}`));
+                log('Generating verification proofs...');
+
+                simulateExecution(() => {
+                    log('✔ Proofs generated', 'success');
+                    log('Creating export package...');
+
+                    simulateExecution(() => {
+                        const exportName = `export_${Date.now()}.zip`;
+
+                        log('✔ Export complete!', 'success');
+                        log('');
+                        log('📦 Export Package:', 'info');
+                        log(`   Filename: ${exportName}`);
+                        log(`   Files: ${files.length}`);
+                        log('   Includes: verification proofs');
+                        log('');
+                        log('Package saved to current directory.', 'info');
+
+                        setStatus('Exported', 'success');
+                        setButtonLoading(btn, false, '📤 Export Selected Files');
+                    }, 600, 1000);
+                }, 500, 800);
+            }, 400, 700);
+        }
+    </script>
+</body>
+
+</html>

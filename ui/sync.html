@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sync to Blockchain - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>⛓️</span>
+                <h1>Sync to Blockchain</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Pushes all staged storage units to the blockchain.
+            Creates a merkle tree of staged units and registers the root hash on-chain.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="targetPath">Directory Path</label>
+                <input type="text" id="targetPath" placeholder="C:\path\to\your\directory">
+                <p class="form-hint">Path to the storage unit directory</p>
+            </div>
+
+            <div class="form-group">
+                <label for="ethHost">Blockchain Host</label>
+                <input type="text" id="ethHost" value="http://127.0.0.1:8545">
+                <p class="form-hint">Ganache/Ethereum node address</p>
+            </div>
+
+            <button class="execute-btn" onclick="executeSync()">
+                🔄 Sync to Blockchain
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        async function executeSync() {
+            const btn = document.querySelector('.execute-btn');
+            const targetPath = document.getElementById('targetPath').value;
+            const ethHost = document.getElementById('ethHost').value;
+
+            setButtonLoading(btn, true);
+            setStatus('Syncing...', 'warning');
+
+            log('Connecting to blockchain...', 'info');
+
+            const result = await apiCall('/sync', 'POST', { targetPath, ethHost });
+
+            if (result.success) {
+                log('✔ Synced to blockchain!', 'success');
+                log('');
+                log('📊 Transaction Details:', 'info');
+                log(`   TX Hash: ${result.data.txHash}`);
+                log(`   Block: ${result.data.blockNumber}`);
+                log(`   Units synced: ${result.data.unitssynced}`);
+                log('');
+                log('Registration files created. Use "Check BC" to verify.', 'info');
+                setStatus('Synced', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '⛓️ Sync to Blockchain');
+        }
+    </script>
+</body>
+
+</html>

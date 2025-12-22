@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Blockchain - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>✅</span>
+                <h1>Verify Blockchain</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Verifies the integrity of your storage unit against the blockchain.
+            Recomputes all hashes and validates the merkle proof against the registered root.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="targetPath">Directory Path</label>
+                <input type="text" id="targetPath" placeholder="C:\path\to\your\directory">
+                <p class="form-hint">Path to the storage unit directory</p>
+            </div>
+
+            <div class="form-group">
+                <label for="ethHost">Blockchain Host</label>
+                <input type="text" id="ethHost" value="http://127.0.0.1:8545">
+                <p class="form-hint">Ethereum node address for verification</p>
+            </div>
+
+            <button class="execute-btn success" onclick="executeCheckBC()">
+                ✅ Verify Integrity
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        async function executeCheckBC() {
+            const btn = document.querySelector('.execute-btn');
+            const targetPath = document.getElementById('targetPath').value;
+            const ethHost = document.getElementById('ethHost').value;
+
+            setButtonLoading(btn, true);
+            setStatus('Verifying...', 'warning');
+
+            log('Sending verification request to server...', 'info');
+
+            const result = await apiCall('/checkbc', 'POST', { targetPath, ethHost });
+
+            if (result.success) {
+                log('');
+
+                // Show different message based on file integrity
+                if (result.data.filesMatch) {
+                    log('═══════════════════════════════════════', 'success');
+                    log('   ✅ STORAGE UNIT INTEGRITY VERIFIED', 'success');
+                    log('═══════════════════════════════════════', 'success');
+                } else {
+                    log('═══════════════════════════════════════', 'error');
+                    log('   ⚠️ FILES HAVE BEEN MODIFIED!', 'error');
+                    log('═══════════════════════════════════════', 'error');
+                }
+
+                log('');
+                log('📊 Verification Details:', 'info');
+                log(`   Files in unit: ${result.data.files}`);
+                log(`   Block: ${result.data.block}`);
+                log(`   TX: ${result.data.txHash}`);
+                log(`   Closed: ${result.data.closed ? 'Yes' : 'No'}`);
+                log('');
+                log('🔐 Hash Comparison:', 'info');
+                log(`   Current Hash:    ${result.data.currentHash}`);
+                log(`   Registered Hash: ${result.data.registeredHash}`);
+                log(`   Match: ${result.data.filesMatch ? '✓ YES' : '✖ NO - FILES CHANGED!'}`);
+                log('');
+                log(result.data.message, result.data.filesMatch ? 'success' : 'error');
+
+                setStatus(result.data.filesMatch ? 'Verified ✓' : 'Modified!', result.data.filesMatch ? 'success' : 'error');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '✅ Verify Integrity');
+        }
+    </script>
+</body>
+
+</html>

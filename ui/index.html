@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vericlasify - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <header>
+            <h1 class="logo">Vericlasify</h1>
+            <p class="tagline"><span class="pulse-dot"></span> Blockchain Git Protection</p>
+        </header>
+
+        <section class="commands-section">
+            <h2 class="section-title">Storage Operations</h2>
+            <div class="commands-grid">
+                <a href="create.html" class="command-card">
+                    <span class="command-icon">➕</span>
+                    <div class="command-info">
+                        <h3>Create</h3>
+                        <p>Initialize a new storage unit</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                <a href="update.html" class="command-card">
+                    <span class="command-icon">🔄</span>
+                    <div class="command-info">
+                        <h3>Update</h3>
+                        <p>Modify existing storage unit</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                <a href="stage.html" class="command-card">
+                    <span class="command-icon">📦</span>
+                    <div class="command-info">
+                        <h3>Stage</h3>
+                        <p>Prepare files for blockchain sync</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                <a href="close.html" class="command-card">
+                    <span class="command-icon">🔒</span>
+                    <div class="command-info">
+                        <h3>Close</h3>
+                        <p>Lock storage unit permanently</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="commands-section">
+            <h2 class="section-title">Blockchain Operations</h2>
+            <div class="commands-grid">
+                <a href="sync.html" class="command-card accent">
+                    <span class="command-icon">⛓️</span>
+                    <div class="command-info">
+                        <h3>Sync to Blockchain</h3>
+                        <p>Push staged files to the chain</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                <a href="checkbc.html" class="command-card success">
+                    <span class="command-icon">✅</span>
+                    <div class="command-info">
+                        <h3>Verify Blockchain</h3>
+                        <p>Check integrity against chain</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                <a href="checkfile.html" class="command-card">
+                    <span class="command-icon">📄</span>
+                    <div class="command-info">
+                        <h3>Verify File</h3>
+                        <p>Check individual file integrity</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="commands-section">
+            <h2 class="section-title">Utilities</h2>
+            <div class="commands-grid">
+                <a href="export.html" class="command-card">
+                    <span class="command-icon">📤</span>
+                    <div class="command-info">
+                        <h3>Export</h3>
+                        <p>Export files for distribution</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                <a href="git.html" class="command-card">
+                    <span class="command-icon">📖</span>
+                    <div class="command-info">
+                        <h3>Git Commands</h3>
+                        <p>Run custom git operations</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                <a href="settings.html" class="command-card">
+                    <span class="command-icon">⚙️</span>
+                    <div class="command-info">
+                        <h3>Settings</h3>
+                        <p>Configure wallets and keys</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator"></span>
+            <span>Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+</body>
+
+</html>

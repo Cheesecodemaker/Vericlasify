@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Storage Unit - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>➕</span>
+                <h1>Create Storage Unit</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Initializes a new Storage Unit in the current directory.
+            Creates a <code>.pinesu.json</code> file and computes merkle root from all tracked files.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="targetPath">Directory Path</label>
+                <input type="text" id="targetPath" placeholder="C:\path\to\your\directory">
+                <p class="form-hint">Full path to the directory you want to track</p>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Storage Unit Name</label>
+                <input type="text" id="name" placeholder="my-research-project">
+                <p class="form-hint">A memorable name for this storage unit</p>
+            </div>
+
+            <div class="form-group">
+                <label for="remote">Remote Git URL</label>
+                <input type="text" id="remote" placeholder="https://github.com/user/repo" value="localhost">
+                <p class="form-hint">Leave as 'localhost' if no remote repository</p>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description (optional)</label>
+                <textarea id="description" placeholder="Brief description of this storage unit..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="ethHost">Blockchain Host</label>
+                <input type="text" id="ethHost" value="http://127.0.0.1:8545">
+                <p class="form-hint">Ethereum node address (Ganache default shown)</p>
+            </div>
+
+            <button class="execute-btn" onclick="executeCreate()">
+                Create Storage Unit
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        async function executeCreate() {
+            const btn = document.querySelector('.execute-btn');
+            const targetPath = document.getElementById('targetPath').value;
+            const name = document.getElementById('name').value;
+            const remote = document.getElementById('remote').value;
+            const description = document.getElementById('description').value;
+            const ethHost = document.getElementById('ethHost').value;
+
+            setButtonLoading(btn, true);
+            setStatus('Creating...', 'warning');
+
+            log('Sending create request to server...', 'info');
+
+            const result = await apiCall('/create', 'POST', {
+                targetPath,
+                name,
+                remote,
+                description,
+                ethHost
+            });
+
+            if (result.success) {
+                log('✔ Storage Unit created successfully!', 'success');
+                log('');
+                log('📊 Storage Unit Details:', 'info');
+                log(`   Name: ${result.data.name}`);
+                log(`   UUID: ${result.data.uuid}`);
+                log(`   Files: ${result.data.files}`);
+                log(`   Merkle: ${result.data.merkleroot.substring(0, 20)}...`);
+                log('');
+                log('Next: Use "Stage" to prepare for blockchain sync', 'info');
+                setStatus('Created', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, 'Create Storage Unit');
+        }
+    </script>
+</body>
+
+</html>

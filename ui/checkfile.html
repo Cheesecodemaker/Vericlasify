@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify File - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>📄</span>
+                <h1>Verify File</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Verifies a specific file's integrity against the blockchain record.
+            Useful for checking individual files without full storage unit verification.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="filePath">File Path</label>
+                <input type="text" id="filePath" placeholder="./path/to/document.pdf">
+                <p class="form-hint">Relative path to the file you want to verify</p>
+            </div>
+
+            <div class="form-group">
+                <label for="ethHost">Blockchain Host</label>
+                <input type="text" id="ethHost" value="http://127.0.0.1:8545">
+                <p class="form-hint">Ethereum node address for verification</p>
+            </div>
+
+            <button class="execute-btn" onclick="executeCheckFile()">
+                📄 Verify File
+            </button>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        async function executeCheckFile() {
+            const btn = document.querySelector('.execute-btn');
+            const filePath = document.getElementById('filePath').value;
+            const ethHost = document.getElementById('ethHost').value;
+
+            if (!filePath) {
+                log('✖ Please enter a file path', 'error');
+                return;
+            }
+
+            setButtonLoading(btn, true);
+            setStatus('Verifying...', 'warning');
+
+            log(`Verifying file: ${filePath}`, 'info');
+
+            const result = await apiCall('/checkfile', 'POST', { filePath, ethHost });
+
+            if (result.success) {
+                log('');
+                log('═══════════════════════════════════════', 'success');
+                log('   ✅ FILE INTEGRITY VERIFIED', 'success');
+                log('═══════════════════════════════════════', 'success');
+                log('');
+                log('📄 File Details:', 'info');
+                log(`   Path: ${result.data.path}`);
+                log(`   Hash: ${result.data.hash}`);
+                log(`   In Storage Unit: ${result.data.inStorageUnit ? 'Yes' : 'No'}`);
+                setStatus('Verified ✓', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '📄 Verify File');
+        }
+    </script>
+</body>
+
+</html>
