@@ -63,6 +63,68 @@ app.get('/api/status', (req, res) => {
     res.json({ success: true, serverDir: SERVER_DIR, version: '1.0.0' });
 });
 
+// List files in a storage unit directory
+app.post('/api/listfiles', (req, res) => {
+    try {
+        const { targetPath } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        // Check if it's a storage unit
+        const pinesuPath = path.join(workingDir, '.pinesu.json');
+        if (!fs.existsSync(pinesuPath)) {
+            return res.json({ success: false, error: 'No storage unit found. Create one first.' });
+        }
+
+        // Read pinesu to get storage unit info
+        const pinesu = JSON.parse(fs.readFileSync(pinesuPath, 'utf8'));
+
+        // Get all files recursively
+        const originalCwd = process.cwd();
+        process.chdir(workingDir);
+
+        const fileList = [];
+        files.getFilelist('.', fileList);
+
+        process.chdir(originalCwd);
+
+        // Build file info with sizes
+        const fileInfo = fileList.filter(f => {
+            const fullPath = path.join(workingDir, f);
+            return fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile();
+        }).map(f => {
+            const fullPath = path.join(workingDir, f);
+            const stats = fs.statSync(fullPath);
+            return {
+                path: f,
+                fullPath: fullPath,
+                size: stats.size,
+                ext: path.extname(f).toLowerCase()
+            };
+        });
+
+        res.json({
+            success: true,
+            data: {
+                storageUnit: pinesu.header?.name || 'Unknown',
+                uuid: pinesu.header?.uuid,
+                totalFiles: fileInfo.length,
+                files: fileInfo
+            }
+        });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
 // Create storage unit - requires targetPath
 app.post('/api/create', async (req, res) => {
     try {

@@ -9,6 +9,141 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
+    <style>
+        .file-browser {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .file-browser.active {
+            display: block;
+        }
+
+        .file-browser-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: rgba(15, 15, 20, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .file-browser-header h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .file-browser-header span {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .file-list {
+            padding: 0.5rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-item:hover {
+            background: rgba(138, 99, 255, 0.15);
+        }
+
+        .file-item.selected {
+            background: rgba(138, 99, 255, 0.25);
+            border: 1px solid var(--accent);
+        }
+
+        .file-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            margin-right: 0.75rem;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 0.85rem;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-meta {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 0.15rem;
+        }
+
+        .load-btn {
+            background: rgba(138, 99, 255, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .load-btn:hover {
+            background: rgba(138, 99, 255, 0.3);
+        }
+
+        .selected-file-display {
+            background: rgba(138, 99, 255, 0.1);
+            border: 1px solid rgba(138, 99, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .selected-file-display.active {
+            display: block;
+        }
+
+        .selected-file-display .label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .selected-file-display .path {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 0.25rem;
+            word-break: break-all;
+        }
+    </style>
 </head>
 
 <body>
@@ -26,24 +161,34 @@
 
         <div class="info-box">
             <strong>What this does:</strong> Verifies a specific file's integrity against the blockchain record.
-            Useful for checking individual files without full storage unit verification.
+            Enter a storage unit path to browse and select files for verification.
         </div>
 
         <div class="form-panel">
             <div class="form-group">
-                <label for="filePath">File Path</label>
-                <input type="text" id="filePath" placeholder="./path/to/document.pdf">
-                <p class="form-hint">Relative path to the file you want to verify</p>
+                <label for="targetPath">Storage Unit Path</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="targetPath" placeholder="C:\path\to\storage\unit" style="flex: 1;">
+                    <button class="load-btn" onclick="loadFiles()">📂 Load Files</button>
+                </div>
+                <p class="form-hint">Enter the path to a storage unit directory</p>
             </div>
 
-            <div class="form-group">
-                <label for="ethHost">Blockchain Host</label>
-                <input type="text" id="ethHost" value="http://127.0.0.1:8545">
-                <p class="form-hint">Ethereum node address for verification</p>
+            <div class="file-browser" id="fileBrowser">
+                <div class="file-browser-header">
+                    <h4>📁 Select a File</h4>
+                    <span id="fileCount">0 files</span>
+                </div>
+                <div class="file-list" id="fileList"></div>
             </div>
 
-            <button class="execute-btn" onclick="executeCheckFile()">
-                📄 Verify File
+            <div class="selected-file-display" id="selectedFileDisplay">
+                <div class="label">Selected File</div>
+                <div class="path" id="selectedFilePath"></div>
+            </div>
+
+            <button class="execute-btn" onclick="executeCheckFile()" id="verifyBtn" disabled>
+                📄 Verify Selected File
             </button>
         </div>
 
@@ -71,22 +216,92 @@
 
     <script src="shared.js"></script>
     <script>
-        async function executeCheckFile() {
-            const btn = document.querySelector('.execute-btn');
-            const filePath = document.getElementById('filePath').value;
-            const ethHost = document.getElementById('ethHost').value;
+        let selectedFile = null;
 
-            if (!filePath) {
-                log('✖ Please enter a file path', 'error');
+        function getFileIcon(ext) {
+            const icons = {
+                '.pdf': '📕', '.doc': '📘', '.docx': '📘', '.txt': '📝',
+                '.py': '🐍', '.js': '🟨', '.html': '🌐', '.css': '🎨',
+                '.json': '📋', '.xml': '📋', '.md': '📖',
+                '.jpg': '🖼️', '.jpeg': '🖼️', '.png': '🖼️', '.gif': '🖼️',
+                '.mp4': '🎬', '.mp3': '🎵', '.wav': '🎵',
+                '.zip': '📦', '.rar': '📦', '.7z': '📦',
+                '.exe': '⚙️', '.dll': '⚙️'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        async function loadFiles() {
+            const targetPath = document.getElementById('targetPath').value;
+            if (!targetPath) {
+                log('✖ Please enter a storage unit path', 'error');
                 return;
             }
 
+            log('Loading files from storage unit...', 'info');
+            setStatus('Loading...', 'warning');
+
+            const result = await apiCall('/listfiles', 'POST', { targetPath });
+
+            if (result.success) {
+                const browser = document.getElementById('fileBrowser');
+                const fileList = document.getElementById('fileList');
+                const fileCount = document.getElementById('fileCount');
+
+                browser.classList.add('active');
+                fileCount.textContent = `${result.data.totalFiles} files`;
+
+                fileList.innerHTML = result.data.files.map(f => `
+                    <div class="file-item" onclick="selectFile('${f.fullPath.replace(/\\/g, '\\\\')}', '${f.path}')">
+                        <div class="file-icon">${getFileIcon(f.ext)}</div>
+                        <div class="file-info">
+                            <div class="file-name">${f.path}</div>
+                            <div class="file-meta">${formatSize(f.size)}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                log(`✔ Loaded ${result.data.totalFiles} files from "${result.data.storageUnit}"`, 'success');
+                setStatus('Files Loaded', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+        }
+
+        function selectFile(fullPath, displayPath) {
+            selectedFile = fullPath;
+
+            // Update UI
+            document.querySelectorAll('.file-item').forEach(item => item.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            document.getElementById('selectedFileDisplay').classList.add('active');
+            document.getElementById('selectedFilePath').textContent = displayPath;
+            document.getElementById('verifyBtn').disabled = false;
+
+            log(`Selected: ${displayPath}`, 'info');
+        }
+
+        async function executeCheckFile() {
+            if (!selectedFile) {
+                log('✖ Please select a file first', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('verifyBtn');
             setButtonLoading(btn, true);
             setStatus('Verifying...', 'warning');
 
-            log(`Verifying file: ${filePath}`, 'info');
+            log(`Verifying file: ${selectedFile}`, 'info');
 
-            const result = await apiCall('/checkfile', 'POST', { filePath, ethHost });
+            const result = await apiCall('/checkfile', 'POST', { filePath: selectedFile });
 
             if (result.success) {
                 log('');
@@ -124,7 +339,7 @@
                 setStatus('Failed', 'error');
             }
 
-            setButtonLoading(btn, false, '📄 Verify File');
+            setButtonLoading(btn, false, '📄 Verify Selected File');
         }
     </script>
 </body>
