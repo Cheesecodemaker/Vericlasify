@@ -448,52 +448,41 @@ app.post('/api/checkfile', async (req, res) => {
         const pinesu = JSON.parse(fs.readFileSync(pinesuPath, 'utf8'));
         const relativePath = path.relative(storageUnitDir, targetFile).replace(/\\/g, '/');
 
-        // Find the file entry with its original hash
-        let originalHash = null;
+        // Find if file is in filelist
         let fileFound = false;
-
         if (pinesu.filelist) {
             for (const entry of pinesu.filelist) {
-                // Entry format can be "path" or "path:hash"
-                const parts = entry.split(':');
-                const entryPath = parts[0].replace(/\\/g, '/');
-
+                const entryPath = entry.split(':')[0].replace(/\\/g, '/');
                 if (entryPath === relativePath ||
                     entryPath === './' + relativePath ||
-                    entryPath === relativePath.replace(/^\.\//, '')) {
+                    entryPath === relativePath.replace(/^\.\//, '') ||
+                    relativePath.endsWith(entryPath) ||
+                    entryPath.endsWith(relativePath)) {
                     fileFound = true;
-                    // If entry has hash stored
-                    if (parts.length > 1 && parts[1].length === 64) {
-                        originalHash = parts[1];
-                    }
                     break;
                 }
             }
         }
 
-        // Calculate if file was modified
-        // If we don't have individual file hash, recalculate from storage unit hash
-        let modified = false;
+        // Recalculate storage unit hash with current files to detect any changes
+        const originalCwd = process.cwd();
+        process.chdir(storageUnitDir);
+
+        const fileList = [];
+        files.getFilelist('.', fileList);
+        const currentStorageHash = calculateContentHash(fileList);
+
+        process.chdir(originalCwd);
+
+        // Compare current storage hash with registered hash
+        const storageModified = (currentStorageHash !== pinesu.hash);
+
         let message = '';
-
         if (fileFound) {
-            if (originalHash) {
-                // We have original hash, compare directly
-                modified = (currentHash !== originalHash);
-                message = modified
-                    ? '⚠️ FILE HAS BEEN MODIFIED! Hash mismatch detected.'
-                    : '✓ File integrity verified - no modifications detected.';
+            if (storageModified) {
+                message = '⚠️ FILES HAVE BEEN MODIFIED! Storage unit hash mismatch.';
             } else {
-                // No individual file hash stored, need to check overall storage unit
-                // Recalculate storage unit hash and compare
-                const fileList = [];
-                files.getFilelist(storageUnitDir, fileList);
-                const newStorageHash = calculateContentHash(fileList.map(f => path.join(storageUnitDir, f)));
-
-                modified = (newStorageHash !== pinesu.hash);
-                message = modified
-                    ? '⚠️ Storage unit has been modified! (Individual file hash not tracked)'
-                    : '✓ Storage unit integrity verified.';
+                message = '✓ File integrity verified - no modifications detected.';
             }
         } else {
             message = '⚠️ File not found in registered file list - may be a new file.';
@@ -504,12 +493,12 @@ app.post('/api/checkfile', async (req, res) => {
             data: {
                 path: targetFile,
                 currentHash,
-                originalHash: originalHash || 'Not individually tracked',
-                modified,
                 inStorageUnit: fileFound,
+                modified: storageModified,
                 storageUnit: pinesu.header?.name || 'Unknown',
                 uuid: pinesu.header?.uuid,
-                storageUnitHash: pinesu.hash,
+                registeredStorageHash: pinesu.hash,
+                currentStorageHash,
                 message
             }
         });

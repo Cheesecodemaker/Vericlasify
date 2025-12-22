@@ -106,14 +106,16 @@
                 log('');
                 log('📄 File Details:', 'info');
                 log(`   Path: ${result.data.path}`);
-                log(`   Current Hash: ${result.data.currentHash}`);
-                if (result.data.originalHash) {
-                    log(`   Original Hash: ${result.data.originalHash}`);
-                }
+                log(`   File Hash: ${result.data.currentHash?.substring(0, 16)}...`);
                 log(`   In Storage Unit: ${result.data.inStorageUnit ? 'Yes' : 'No'}`);
-                if (result.data.storageUnit) {
+                if (result.data.storageUnit && result.data.storageUnit !== 'Unknown') {
                     log(`   Storage Unit: ${result.data.storageUnit}`);
                 }
+                log('');
+                log('🔐 Hash Comparison:', 'info');
+                log(`   Registered: ${result.data.registeredStorageHash?.substring(0, 20)}...`);
+                log(`   Current:    ${result.data.currentStorageHash?.substring(0, 20)}...`);
+                log(`   Match: ${result.data.modified ? '❌ NO' : '✅ YES'}`);
                 log('');
                 log(`📝 ${result.data.message}`, result.data.modified ? 'error' : 'success');
                 setStatus(result.data.modified ? 'Modified!' : 'Verified ✓', result.data.modified ? 'error' : 'success');
