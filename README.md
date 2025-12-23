@@ -29,7 +29,7 @@ node index.js
 3. Select: create / update
 4. Select: stage
 5. Select: syncwbc
-6. Enter blockchain URL: http://localhost:7545
+6. Enter blockchain URL: http://localhost:7545 or http://127.0.0.1:8545 (CLI)
 7. Select: checkbc (to verify)
 
 ## Security
