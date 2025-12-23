@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node index.js",
     "server": "node server.js",
+    "ai": "python classifier_api.py",
+    "ganache": "ganache-cli",
+    "dev": "start cmd /k \"ganache-cli\" && start cmd /k \"node server.js\" && python classifier_api.py",
     "ui": "node server.js",
     "postinstall": "patch-package"
   },

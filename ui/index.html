@@ -18,123 +18,811 @@
     <div class="container">
         <header>
             <h1 class="logo">Vericlasify</h1>
-            <p class="tagline"><span class="pulse-dot"></span> Blockchain Git Protection</p>
+            <p class="tagline"><span class="pulse-dot"></span> <span id="tagline-text">Blockchain Git Protection</span>
+            </p>
+
+            <!-- Token Settings Button (Top Right) -->
+            <div class="token-settings" id="tokenSettings">
+                <button class="token-btn" id="tokenBtn" title="API Token Settings">
+                    <span class="token-icon">🔑</span>
+                    <span class="token-status" id="tokenStatusDot"></span>
+                </button>
+
+                <div class="token-dropdown" id="tokenDropdown">
+                    <div class="token-dropdown-header">
+                        <span>🔐</span>
+                        <span>Access Token</span>
+                    </div>
+
+                    <div class="token-display" id="tokenDisplay">
+                        <code id="maskedToken">Not configured</code>
+                    </div>
+
+                    <div class="token-form">
+                        <input type="password" id="newTokenInput" placeholder="hf_xxxxxxxxx..." autocomplete="off">
+                        <button class="token-save-btn" id="saveTokenBtn">
+                            <span id="saveTokenText">Save</span>
+                        </button>
+                    </div>
+
+                    <div class="token-hint">
+                        <a href="https://huggingface.co/settings/tokens" target="_blank">Get token
+                            →</a>
+                    </div>
+
+                    <div class="token-message" id="tokenMessage"></div>
+                </div>
+            </div>
+
+            <!-- Module Toggle -->
+            <div class="module-toggle-container">
+                <div class="module-toggle" id="moduleToggle">
+                    <div class="toggle-slider" id="toggleSlider"></div>
+                    <button class="toggle-btn active" data-mode="blockchain" id="btnBlockchain">
+                        <span class="toggle-icon">⛓️</span>
+                        <span>Blockchain</span>
+                    </button>
+                    <button class="toggle-btn" data-mode="ai" id="btnAI">
+                        <span class="toggle-icon">🧠</span>
+                        <span>AI Classify</span>
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <section class="commands-section">
-            <h2 class="section-title">Storage Operations</h2>
-            <div class="commands-grid">
-                <a href="create.html" class="command-card">
-                    <span class="command-icon">➕</span>
-                    <div class="command-info">
-                        <h3>Create</h3>
-                        <p>Initialize a new storage unit</p>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="update.html" class="command-card">
-                    <span class="command-icon">🔄</span>
-                    <div class="command-info">
-                        <h3>Update</h3>
-                        <p>Modify existing storage unit</p>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="stage.html" class="command-card">
-                    <span class="command-icon">📦</span>
-                    <div class="command-info">
-                        <h3>Stage</h3>
-                        <p>Prepare files for blockchain sync</p>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="close.html" class="command-card">
-                    <span class="command-icon">🔒</span>
-                    <div class="command-info">
-                        <h3>Close</h3>
-                        <p>Lock storage unit permanently</p>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-            </div>
-        </section>
+        <!-- ==================== AI SECTION ==================== -->
+        <div id="aiSection" class="module-section" style="display: none;">
 
-        <section class="commands-section">
-            <h2 class="section-title">Blockchain Operations</h2>
-            <div class="commands-grid">
-                <a href="sync.html" class="command-card accent">
-                    <span class="command-icon">⛓️</span>
-                    <div class="command-info">
-                        <h3>Sync to Blockchain</h3>
-                        <p>Push staged files to the chain</p>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="checkbc.html" class="command-card success">
-                    <span class="command-icon">✅</span>
-                    <div class="command-info">
-                        <h3>Verify Blockchain</h3>
-                        <p>Check integrity against chain</p>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="checkfile.html" class="command-card">
-                    <span class="command-icon">📄</span>
-                    <div class="command-info">
-                        <h3>Verify File</h3>
-                        <p>Check individual file integrity</p>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-            </div>
-        </section>
+            <!-- File Upload Zone -->
+            <section class="ai-upload-section">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📄</div>
+                    <h3>Drop your document here</h3>
+                    <p>or click to browse</p>
+                    <span class="upload-formats">PDF, DOCX, TXT, MD</span>
+                    <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md" hidden>
+                </div>
 
-        <section class="commands-section">
-            <h2 class="section-title">Utilities</h2>
-            <div class="commands-grid">
-                <a href="revert.html" class="command-card" style="border-color: rgba(245, 158, 11, 0.3);">
-                    <span class="command-icon">⏪</span>
-                    <div class="command-info">
-                        <h3>Revert</h3>
-                        <p>Restore files to previous version</p>
+                <div class="selected-file" id="selectedFile" style="display: none;">
+                    <div class="file-info">
+                        <span class="file-icon">📎</span>
+                        <span class="file-name" id="fileName"></span>
+                        <span class="file-size" id="fileSize"></span>
                     </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="git.html" class="command-card">
-                    <span class="command-icon">📖</span>
-                    <div class="command-info">
-                        <h3>Git Commands</h3>
-                        <p>Run custom git operations</p>
+                    <button class="remove-file" id="removeFile">✕</button>
+                </div>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="ai-progress-section" id="progressSection" style="display: none;">
+                <div class="progress-header">
+                    <h3>Classification Pipeline</h3>
+                    <span class="progress-percent" id="progressPercent">0%</span>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+
+                <div class="pipeline-stages">
+                    <div class="stage" id="stageExtract">
+                        <div class="stage-indicator"></div>
+                        <div class="stage-content">
+                            <div class="stage-header">
+                                <span class="stage-name">Extract Text</span>
+                                <span class="stage-percent" id="extractPercent">0%</span>
+                            </div>
+                            <div class="stage-progress-bar">
+                                <div class="stage-progress-fill" id="extractProgress"></div>
+                            </div>
+                            <span class="stage-status">Waiting</span>
+                        </div>
                     </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="export.html" class="command-card">
-                    <span class="command-icon">📤</span>
-                    <div class="command-info">
-                        <h3>Export</h3>
-                        <p>Export files for distribution</p>
+                    <div class="stage" id="stageLabels">
+                        <div class="stage-indicator"></div>
+                        <div class="stage-content">
+                            <div class="stage-header">
+                                <span class="stage-name">Generate Labels</span>
+                                <span class="stage-percent" id="labelsPercent">0%</span>
+                            </div>
+                            <div class="stage-progress-bar">
+                                <div class="stage-progress-fill" id="labelsProgress"></div>
+                            </div>
+                            <span class="stage-status">Waiting</span>
+                        </div>
                     </div>
-                    <span class="arrow">→</span>
-                </a>
-                <a href="settings.html" class="command-card">
-                    <span class="command-icon">⚙️</span>
-                    <div class="command-info">
-                        <h3>Settings</h3>
-                        <p>Configure wallets and keys</p>
+                    <div class="stage" id="stageClassify">
+                        <div class="stage-indicator"></div>
+                        <div class="stage-content">
+                            <div class="stage-header">
+                                <span class="stage-name">Classify Document</span>
+                                <span class="stage-percent" id="classifyPercent">0%</span>
+                            </div>
+                            <div class="stage-progress-bar">
+                                <div class="stage-progress-fill" id="classifyProgress"></div>
+                            </div>
+                            <span class="stage-status">Waiting</span>
+                        </div>
                     </div>
-                    <span class="arrow">→</span>
-                </a>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="ai-results-section" id="resultsSection" style="display: none;">
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-icon">✨</span>
+                        <h3>Classification Result</h3>
+                    </div>
+
+                    <div class="primary-result">
+                        <div class="result-label" id="resultLabel">Document Type</div>
+                    </div>
+
+                    <div class="all-scores" id="allScores">
+                        <!-- Dynamically populated -->
+                    </div>
+
+                    <button class="execute-btn" id="classifyAnother" style="margin-top: 1.5rem;">
+                        <span>🔄</span> Classify Another Document
+                    </button>
+
+                    <!-- Log Viewer Buttons -->
+                    <div class="log-buttons">
+                        <button class="log-btn" id="viewTextBtn" disabled>
+                            <span>📄</span> View Extracted Text
+                        </button>
+                        <button class="log-btn" id="viewLabelsBtn" disabled>
+                            <span>🏷️</span> View Labels JSON
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Log Modal -->
+            <div class="log-modal" id="logModal">
+                <div class="log-modal-content">
+                    <div class="log-modal-header">
+                        <h3 id="logModalTitle">Log</h3>
+                        <button class="log-modal-close" id="closeLogModal">✕</button>
+                    </div>
+                    <pre class="log-modal-body" id="logModalBody"></pre>
+                </div>
             </div>
-        </section>
+
+            <!-- Classify Button -->
+            <button class="execute-btn" id="classifyBtn" disabled>
+                <span class="spinner" id="classifySpinner" style="display: none;"></span>
+                <span id="classifyBtnText">🚀 Start Classification</span>
+            </button>
+
+            <!-- Error Display -->
+            <div class="error-box" id="errorBox" style="display: none;">
+                <span class="error-icon">⚠️</span>
+                <span class="error-message" id="errorMessage"></span>
+            </div>
+        </div>
+
+        <!-- ==================== BLOCKCHAIN SECTION ==================== -->
+        <div id="blockchainSection" class="module-section">
+            <section class="commands-section">
+                <h2 class="section-title">Storage Operations</h2>
+                <div class="commands-grid">
+                    <a href="create.html" class="command-card">
+                        <span class="command-icon">➕</span>
+                        <div class="command-info">
+                            <h3>Create</h3>
+                            <p>Initialize a new storage unit</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="update.html" class="command-card">
+                        <span class="command-icon">🔄</span>
+                        <div class="command-info">
+                            <h3>Update</h3>
+                            <p>Modify existing storage unit</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="stage.html" class="command-card">
+                        <span class="command-icon">📦</span>
+                        <div class="command-info">
+                            <h3>Stage</h3>
+                            <p>Prepare files for blockchain sync</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="close.html" class="command-card">
+                        <span class="command-icon">🔒</span>
+                        <div class="command-info">
+                            <h3>Close</h3>
+                            <p>Lock storage unit permanently</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                </div>
+            </section>
+
+            <section class="commands-section">
+                <h2 class="section-title">Blockchain Operations</h2>
+                <div class="commands-grid">
+                    <a href="sync.html" class="command-card accent">
+                        <span class="command-icon">⛓️</span>
+                        <div class="command-info">
+                            <h3>Sync to Blockchain</h3>
+                            <p>Push staged files to the chain</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="checkbc.html" class="command-card success">
+                        <span class="command-icon">✅</span>
+                        <div class="command-info">
+                            <h3>Verify Blockchain</h3>
+                            <p>Check integrity against chain</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="checkfile.html" class="command-card">
+                        <span class="command-icon">📄</span>
+                        <div class="command-info">
+                            <h3>Verify File</h3>
+                            <p>Check individual file integrity</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                </div>
+            </section>
+
+            <section class="commands-section">
+                <h2 class="section-title">Utilities</h2>
+                <div class="commands-grid">
+                    <a href="revert.html" class="command-card" style="border-color: rgba(245, 158, 11, 0.3);">
+                        <span class="command-icon">⏪</span>
+                        <div class="command-info">
+                            <h3>Revert</h3>
+                            <p>Restore files to previous version</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="git.html" class="command-card">
+                        <span class="command-icon">📖</span>
+                        <div class="command-info">
+                            <h3>Git Commands</h3>
+                            <p>Run custom git operations</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="export.html" class="command-card">
+                        <span class="command-icon">📤</span>
+                        <div class="command-info">
+                            <h3>Export</h3>
+                            <p>Export files for distribution</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="settings.html" class="command-card">
+                        <span class="command-icon">⚙️</span>
+                        <div class="command-info">
+                            <h3>Settings</h3>
+                            <p>Configure wallets and keys</p>
+                        </div>
+                        <span class="arrow">→</span>
+                    </a>
+                </div>
+            </section>
+        </div>
     </div>
 
     <div class="status-bar">
         <div class="status-item">
-            <span class="status-indicator"></span>
-            <span>Ready</span>
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
         </div>
         <span class="status-version">v1.0.0</span>
     </div>
+
+    <script>
+        // =============================================================================
+        // MODULE TOGGLE
+        // =============================================================================
+
+        const moduleToggle = document.getElementById('moduleToggle');
+        const toggleSlider = document.getElementById('toggleSlider');
+        const btnBlockchain = document.getElementById('btnBlockchain');
+        const btnAI = document.getElementById('btnAI');
+        const blockchainSection = document.getElementById('blockchainSection');
+        const aiSection = document.getElementById('aiSection');
+        const taglineText = document.getElementById('tagline-text');
+
+        function setMode(mode) {
+            localStorage.setItem('vericlasify-mode', mode);
+
+            if (mode === 'ai') {
+                btnAI.classList.add('active');
+                btnBlockchain.classList.remove('active');
+                toggleSlider.style.transform = 'translateX(100%)';
+                aiSection.style.display = 'block';
+                blockchainSection.style.display = 'none';
+                taglineText.textContent = 'AI Document Classification';
+                document.querySelector('.bg-glow').style.background =
+                    'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.12), transparent 50%)';
+            } else {
+                btnBlockchain.classList.add('active');
+                btnAI.classList.remove('active');
+                toggleSlider.style.transform = 'translateX(0)';
+                blockchainSection.style.display = 'block';
+                aiSection.style.display = 'none';
+                taglineText.textContent = 'Blockchain Git Protection';
+                document.querySelector('.bg-glow').style.background =
+                    'radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.08), transparent 50%)';
+            }
+        }
+
+        btnBlockchain.addEventListener('click', () => setMode('blockchain'));
+        btnAI.addEventListener('click', () => setMode('ai'));
+
+        // Load saved mode
+        const savedMode = localStorage.getItem('vericlasify-mode') || 'blockchain';
+        setMode(savedMode);
+
+        // =============================================================================
+        // AI CLASSIFICATION LOGIC
+        // =============================================================================
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFile = document.getElementById('selectedFile');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const removeFile = document.getElementById('removeFile');
+        const classifyBtn = document.getElementById('classifyBtn');
+        const classifyBtnText = document.getElementById('classifyBtnText');
+        const classifySpinner = document.getElementById('classifySpinner');
+        const progressSection = document.getElementById('progressSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const errorBox = document.getElementById('errorBox');
+        const errorMessage = document.getElementById('errorMessage');
+        const classifyAnother = document.getElementById('classifyAnother');
+
+        let selectedFileData = null;
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFileSelect(files[0]);
+        });
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
+        });
+
+        function handleFileSelect(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            const allowed = ['pdf', 'docx', 'txt', 'md'];
+
+            if (!allowed.includes(ext)) {
+                showError(`Invalid file type. Allowed: ${allowed.join(', ')}`);
+                return;
+            }
+
+            selectedFileData = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            uploadZone.style.display = 'none';
+            selectedFile.style.display = 'flex';
+            classifyBtn.disabled = false;
+            hideError();
+            resultsSection.style.display = 'none';
+            progressSection.style.display = 'none';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        removeFile.addEventListener('click', () => {
+            selectedFileData = null;
+            fileInput.value = '';
+            uploadZone.style.display = 'flex';
+            selectedFile.style.display = 'none';
+            classifyBtn.disabled = true;
+        });
+
+        classifyAnother.addEventListener('click', () => {
+            resultsSection.style.display = 'none';
+            progressSection.style.display = 'none';
+            selectedFileData = null;
+            fileInput.value = '';
+            uploadZone.style.display = 'flex';
+            selectedFile.style.display = 'none';
+            classifyBtn.disabled = true;
+            classifyBtn.style.display = 'flex';
+        });
+
+        // Classification
+        classifyBtn.addEventListener('click', startClassification);
+
+        async function startClassification() {
+            if (!selectedFileData) return;
+
+            // UI state
+            classifyBtn.disabled = true;
+            classifyBtnText.textContent = 'Processing...';
+            classifySpinner.style.display = 'inline-block';
+            progressSection.style.display = 'block';
+            resultsSection.style.display = 'none';
+            hideError();
+            resetStages();
+
+            const formData = new FormData();
+            formData.append('file', selectedFileData);
+
+            try {
+                const response = await fetch('http://localhost:5050/api/classify/stream', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            handleStreamData(data);
+                        }
+                    }
+                }
+            } catch (error) {
+                showError('Failed to connect to classification server. Is the Python API running?');
+                resetClassifyButton();
+            }
+        }
+
+        // Store classification data for log viewing
+        let extractedText = '';
+        let generatedLabels = [];
+        let classificationScores = {};
+
+        function handleStreamData(data) {
+            if (data.error) {
+                showError(data.error);
+                resetClassifyButton();
+                return;
+            }
+
+            switch (data.stage) {
+                case 'extract':
+                    updateStage('stageExtract', 'extractProgress', 'extractPercent', data.status, data.progress || 0, 33);
+                    if (data.extracted_text) {
+                        extractedText = data.extracted_text;
+                    } else if (data.text_length) {
+                        extractedText = `[Extracted ${data.text_length} characters - text not available]`;
+                    }
+                    break;
+                case 'labels':
+                    updateStage('stageLabels', 'labelsProgress', 'labelsPercent', data.status, data.progress || 0, 66);
+                    if (data.labels) {
+                        generatedLabels = data.labels;
+                        document.querySelector('#stageLabels .stage-status').textContent =
+                            data.labels.slice(0, 2).join(', ') + '...';
+                    }
+                    break;
+                case 'classify':
+                    updateStage('stageClassify', 'classifyProgress', 'classifyPercent', data.status, data.progress || 0, 90);
+                    break;
+                case 'complete':
+                    updateStage('stageClassify', 'classifyProgress', 'classifyPercent', 'complete', 100, 100);
+                    classificationScores = data.all_scores || {};
+                    hideError();  // Clear any previous error
+                    showResults(data);
+                    resetClassifyButton();
+                    classifyBtn.style.display = 'none';
+                    // Enable log buttons
+                    document.getElementById('viewTextBtn').disabled = false;
+                    document.getElementById('viewLabelsBtn').disabled = false;
+                    break;
+            }
+        }
+
+        // Stage progress simulation intervals
+        let stageIntervals = {};
+
+        function updateStage(stageId, progressId, percentId, status, stageProgress, overallPercent) {
+            const stage = document.getElementById(stageId);
+            const statusEl = stage.querySelector('.stage-status');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const stageProgressBar = document.getElementById(progressId);
+            const stagePercentEl = document.getElementById(percentId);
+
+            stage.classList.remove('running', 'complete', 'error');
+
+            // Clear any existing interval for this stage
+            if (stageIntervals[stageId]) {
+                clearInterval(stageIntervals[stageId]);
+            }
+
+            if (status === 'running') {
+                stage.classList.add('running');
+                statusEl.textContent = 'Processing...';
+
+                // Simulate progress animation
+                let currentProgress = 0;
+                stageIntervals[stageId] = setInterval(() => {
+                    if (currentProgress < 95) {
+                        currentProgress += Math.random() * 15;
+                        currentProgress = Math.min(currentProgress, 95);
+                        stageProgressBar.style.width = currentProgress + '%';
+                        stagePercentEl.textContent = Math.round(currentProgress) + '%';
+                    }
+                }, 300);
+            } else if (status === 'complete') {
+                stage.classList.add('complete');
+                statusEl.textContent = '✓ Complete';
+                stageProgressBar.style.width = '100%';
+                stagePercentEl.textContent = '100%';
+            } else if (status === 'error') {
+                stage.classList.add('error');
+                statusEl.textContent = 'Error';
+            }
+
+            progressBar.style.width = overallPercent + '%';
+            progressPercent.textContent = overallPercent + '%';
+        }
+
+        function resetStages() {
+            ['stageExtract', 'stageLabels', 'stageClassify'].forEach(id => {
+                const stage = document.getElementById(id);
+                stage.classList.remove('running', 'complete', 'error');
+                stage.querySelector('.stage-status').textContent = 'Waiting';
+                if (stageIntervals[id]) {
+                    clearInterval(stageIntervals[id]);
+                }
+            });
+
+            // Reset individual stage progress
+            ['extractProgress', 'labelsProgress', 'classifyProgress'].forEach(id => {
+                document.getElementById(id).style.width = '0%';
+            });
+            ['extractPercent', 'labelsPercent', 'classifyPercent'].forEach(id => {
+                document.getElementById(id).textContent = '0%';
+            });
+
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressPercent').textContent = '0%';
+        }
+
+        function showResults(data) {
+            resultsSection.style.display = 'block';
+
+            const resultLabel = document.getElementById('resultLabel');
+            if (resultLabel) {
+                resultLabel.textContent = data.label;
+            }
+
+            const confidence = Math.round((data.confidence || 0) * 100);
+
+            // These elements may have been removed - add null checks
+            const gaugeFill = document.getElementById('gaugeFill');
+            const confidenceValue = document.getElementById('confidenceValue');
+
+            if (gaugeFill) {
+                gaugeFill.style.width = confidence + '%';
+                // Color based on confidence
+                if (confidence >= 70) {
+                    gaugeFill.style.background = 'var(--gradient-2)';
+                } else if (confidence >= 40) {
+                    gaugeFill.style.background = 'linear-gradient(90deg, #f59e0b, #eab308)';
+                } else {
+                    gaugeFill.style.background = 'linear-gradient(90deg, #ef4444, #f97316)';
+                }
+            }
+
+            if (confidenceValue) {
+                confidenceValue.textContent = confidence + '%';
+            }
+
+            // All scores
+            const allScoresDiv = document.getElementById('allScores');
+            if (allScoresDiv && data.all_scores) {
+                allScoresDiv.innerHTML = '<h4>All Categories</h4>';
+
+                const sortedScores = Object.entries(data.all_scores)
+                    .sort((a, b) => b[1] - a[1]);
+
+                for (const [label, score] of sortedScores) {
+                    const percent = Math.round(score * 100);
+                    const scoreItem = document.createElement('div');
+                    scoreItem.className = 'score-item';
+                    scoreItem.innerHTML = `
+                        <span class="score-label">${label}</span>
+                        <div class="score-bar-container">
+                            <div class="score-bar" style="width: ${percent}%"></div>
+                        </div>
+                        <span class="score-value">${percent}%</span>
+                    `;
+                    allScoresDiv.appendChild(scoreItem);
+                }
+            }
+        }
+
+        function showError(msg) {
+            errorBox.style.display = 'flex';
+            errorMessage.textContent = msg;
+            document.getElementById('statusIndicator').classList.add('error');
+            document.getElementById('statusText').textContent = 'Error';
+        }
+
+        function hideError() {
+            errorBox.style.display = 'none';
+            document.getElementById('statusIndicator').classList.remove('error');
+            document.getElementById('statusText').textContent = 'Ready';
+        }
+
+        function resetClassifyButton() {
+            classifyBtn.disabled = false;
+            classifyBtnText.textContent = '🚀 Start Classification';
+            classifySpinner.style.display = 'none';
+        }
+
+        // =============================================================================
+        // TOKEN SETTINGS
+        // =============================================================================
+
+        const tokenBtn = document.getElementById('tokenBtn');
+        const tokenDropdown = document.getElementById('tokenDropdown');
+        const tokenStatusDot = document.getElementById('tokenStatusDot');
+        const maskedToken = document.getElementById('maskedToken');
+        const newTokenInput = document.getElementById('newTokenInput');
+        const saveTokenBtn = document.getElementById('saveTokenBtn');
+        const saveTokenText = document.getElementById('saveTokenText');
+        const tokenMessage = document.getElementById('tokenMessage');
+
+        // Toggle dropdown
+        tokenBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tokenDropdown.classList.toggle('open');
+            if (tokenDropdown.classList.contains('open')) {
+                loadTokenStatus();
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.token-settings')) {
+                tokenDropdown.classList.remove('open');
+            }
+        });
+
+        // Load token status
+        async function loadTokenStatus() {
+            try {
+                const response = await fetch('http://localhost:5050/api/token');
+                const data = await response.json();
+
+                if (data.configured) {
+                    maskedToken.textContent = data.masked;
+                    tokenStatusDot.classList.add('configured');
+                    tokenStatusDot.classList.remove('not-configured');
+                } else {
+                    maskedToken.textContent = 'Not configured';
+                    tokenStatusDot.classList.add('not-configured');
+                    tokenStatusDot.classList.remove('configured');
+                }
+            } catch (error) {
+                maskedToken.textContent = 'Error loading';
+                tokenStatusDot.classList.add('not-configured');
+            }
+        }
+
+        // Save token
+        saveTokenBtn.addEventListener('click', async () => {
+            const token = newTokenInput.value.trim();
+            if (!token) {
+                showTokenMessage('Please enter a token', 'error');
+                return;
+            }
+
+            saveTokenText.textContent = 'Saving...';
+            saveTokenBtn.disabled = true;
+
+            try {
+                const response = await fetch('http://localhost:5050/api/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    maskedToken.textContent = data.masked;
+                    tokenStatusDot.classList.add('configured');
+                    tokenStatusDot.classList.remove('not-configured');
+                    newTokenInput.value = '';
+                    showTokenMessage('✓ Token saved', 'success');
+                } else {
+                    showTokenMessage(data.error || 'Failed to save', 'error');
+                }
+            } catch (error) {
+                showTokenMessage('Network error', 'error');
+            } finally {
+                saveTokenText.textContent = 'Save';
+                saveTokenBtn.disabled = false;
+            }
+        });
+
+        function showTokenMessage(msg, type) {
+            tokenMessage.textContent = msg;
+            tokenMessage.className = 'token-message ' + type;
+            setTimeout(() => {
+                tokenMessage.textContent = '';
+                tokenMessage.className = 'token-message';
+            }, 3000);
+        }
+
+        // Load token status on page load
+        loadTokenStatus();
+
+        // =============================================================================
+        // LOG VIEWER MODAL
+        // =============================================================================
+
+        const logModal = document.getElementById('logModal');
+        const logModalTitle = document.getElementById('logModalTitle');
+        const logModalBody = document.getElementById('logModalBody');
+        const closeLogModal = document.getElementById('closeLogModal');
+        const viewTextBtn = document.getElementById('viewTextBtn');
+        const viewLabelsBtn = document.getElementById('viewLabelsBtn');
+
+        viewTextBtn.addEventListener('click', () => {
+            logModalTitle.textContent = '📄 Extracted Text';
+            logModalBody.textContent = extractedText || 'No text extracted';
+            logModal.classList.add('open');
+        });
+
+        viewLabelsBtn.addEventListener('click', () => {
+            logModalTitle.textContent = '🏷️ Generated Labels (JSON)';
+            const labelsData = {
+                labels: generatedLabels,
+                scores: classificationScores
+            };
+            logModalBody.textContent = JSON.stringify(labelsData, null, 2);
+            logModal.classList.add('open');
+        });
+
+        closeLogModal.addEventListener('click', () => {
+            logModal.classList.remove('open');
+        });
+
+        logModal.addEventListener('click', (e) => {
+            if (e.target === logModal) {
+                logModal.classList.remove('open');
+            }
+        });
+    </script>
 </body>
 
 </html>
