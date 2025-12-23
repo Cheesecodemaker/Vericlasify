@@ -78,16 +78,19 @@ app.post('/api/listfiles', (req, res) => {
             return res.json({ success: false, error: `Directory not found: ${workingDir}` });
         }
 
-        // Check if it's a storage unit
-        const pinesuPath = path.join(workingDir, '.pinesu.json');
-        if (!fs.existsSync(pinesuPath)) {
+        // Check if it's a storage unit (support both new and legacy names)
+        let vericlPath = path.join(workingDir, files.VERICL_FILE);
+        if (!fs.existsSync(vericlPath)) {
+            vericlPath = path.join(workingDir, '.pinesu.json'); // Legacy fallback
+        }
+        if (!fs.existsSync(vericlPath)) {
             return res.json({ success: false, error: 'No storage unit found. Create one first.' });
         }
 
-        // Read pinesu to get storage unit info
-        const pinesu = JSON.parse(fs.readFileSync(pinesuPath, 'utf8'));
+        // Read vericl config
+        const vericl = JSON.parse(fs.readFileSync(vericlPath, 'utf8'));
 
-        // Get all files recursively
+        // Get all files recursively (current filesystem state)
         const originalCwd = process.cwd();
         process.chdir(workingDir);
 
@@ -96,8 +99,20 @@ app.post('/api/listfiles', (req, res) => {
 
         process.chdir(originalCwd);
 
+        // Also include files from the registered filelist (may include hidden/tracked files)
+        const trackedFiles = new Set();
+        if (vericl.filelist) {
+            for (const entry of vericl.filelist) {
+                const filePath = entry.split(':')[0].replace(/\\/g, '/');
+                trackedFiles.add(filePath);
+            }
+        }
+
+        // Merge current files with tracked files
+        const allFiles = new Set([...fileList, ...trackedFiles]);
+
         // Build file info with sizes
-        const fileInfo = fileList.filter(f => {
+        const fileInfo = Array.from(allFiles).filter(f => {
             const fullPath = path.join(workingDir, f);
             return fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile();
         }).map(f => {
@@ -107,15 +122,16 @@ app.post('/api/listfiles', (req, res) => {
                 path: f,
                 fullPath: fullPath,
                 size: stats.size,
-                ext: path.extname(f).toLowerCase()
+                ext: path.extname(f).toLowerCase(),
+                tracked: trackedFiles.has(f)
             };
-        });
+        }).sort((a, b) => a.path.localeCompare(b.path));
 
         res.json({
             success: true,
             data: {
-                storageUnit: pinesu.header?.name || 'Unknown',
-                uuid: pinesu.header?.uuid,
+                storageUnit: vericl.header?.name || 'Unknown',
+                uuid: vericl.header?.uuid,
                 totalFiles: fileInfo.length,
                 files: fileInfo
             }
@@ -148,7 +164,8 @@ app.post('/api/create', async (req, res) => {
         process.chdir(workingDir);
 
         try {
-            if (files.fileExists('.pinesu.json')) {
+            // Check for both new and legacy file names
+            if (files.fileExists(files.VERICL_FILE) || files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'Storage unit already exists.' });
             }
@@ -171,28 +188,29 @@ app.post('/api/create', async (req, res) => {
             // Calculate hash from actual file CONTENTS
             const contentHash = calculateContentHash(fileList);
 
-            const pinesu = {
+            const vericl = {
                 header: {
                     uuid, name: name || 'Storage Unit',
                     description: description || '',
-                    created: now, mdtime: now
+                    created: now, mdtime: now,
+                    crtime: now
                 },
                 filelist: fileList,
                 hash: contentHash,
                 offhash: { closed: false }
             };
 
-            await files.savePineSUJSON(pinesu);
+            await files.saveVericlJSON(vericl);
 
             if (!fs.existsSync('.gitignore')) {
-                fs.writeFileSync('.gitignore', 'node_modules\n.pinesu.json\n.regpinesu.json\n');
+                fs.writeFileSync('.gitignore', `node_modules\n${files.VERICL_FILE}\n${files.REG_VERICL_FILE}\n${files.VERICL_HISTORY}\n`);
             }
 
             process.chdir(originalCwd);
 
             res.json({
                 success: true,
-                data: { uuid, name: pinesu.header.name, path: workingDir, files: fileList.length, hash: contentHash }
+                data: { uuid, name: vericl.header.name, path: workingDir, files: fileList.length, hash: contentHash }
             });
         } catch (error) {
             process.chdir(originalCwd);
@@ -217,12 +235,13 @@ app.post('/api/stage', async (req, res) => {
         process.chdir(workingDir);
 
         try {
-            if (!files.fileExists('.pinesu.json')) {
+            // Support both new and legacy file names
+            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'No storage unit found.' });
             }
 
-            const pinesu = files.readPineSUFile();
+            const vericl = files.readVericlFile();
 
             const sg = files.loadSG() || [];
             const alreadyStaged = sg.find(s => s.path === workingDir);
@@ -233,15 +252,15 @@ app.post('/api/stage', async (req, res) => {
 
             sg.push({
                 path: workingDir,
-                uuid: pinesu.header.uuid,
-                hash: pinesu.hash,
+                uuid: vericl.header.uuid,
+                hash: vericl.hash,
                 staged: new Date().toISOString()
             });
 
             files.saveSG(sg);
             process.chdir(originalCwd);
 
-            res.json({ success: true, data: { stagedCount: sg.length, path: workingDir, hash: pinesu.hash } });
+            res.json({ success: true, data: { stagedCount: sg.length, path: workingDir, hash: vericl.hash } });
         } catch (error) {
             process.chdir(originalCwd);
             throw error;
@@ -270,13 +289,14 @@ app.post('/api/update', async (req, res) => {
         process.chdir(workingDir);
 
         try {
-            if (!files.fileExists('.pinesu.json')) {
+            // Support both new and legacy file names
+            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'No storage unit found. Create one first.' });
             }
 
-            const pinesu = files.readPineSUFile();
-            const oldHash = pinesu.hash;
+            const vericl = files.readVericlFile();
+            const oldHash = vericl.hash;
 
             // Get current file list
             const fileList = [];
@@ -285,15 +305,15 @@ app.post('/api/update', async (req, res) => {
             // Calculate new content hash
             const newHash = calculateContentHash(fileList);
 
-            // Update pinesu with new values
-            pinesu.header.mdtime = new Date().toISOString();
-            pinesu.filelist = fileList;
-            pinesu.hash = newHash;
+            // Update vericl with new values
+            vericl.header.mdtime = new Date().toISOString();
+            vericl.filelist = fileList;
+            vericl.hash = newHash;
 
             // Save previous hash info
-            pinesu.header.prevhash = oldHash;
+            vericl.header.prevhash = oldHash;
 
-            await files.savePineSUJSON(pinesu);
+            await files.saveVericlJSON(vericl);
 
             process.chdir(originalCwd);
 
@@ -405,7 +425,8 @@ app.post('/api/checkbc', async (req, res) => {
         process.chdir(workingDir);
 
         try {
-            if (!files.fileExists('.pinesu.json')) {
+            // Support both new and legacy file names
+            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'No storage unit found.' });
             }
@@ -416,7 +437,7 @@ app.post('/api/checkbc', async (req, res) => {
                 return res.json({ success: false, error: 'No registration found. Sync first.' });
             }
 
-            const pinesu = files.readPineSUFile();
+            const vericl = files.readVericlFile();
 
             // Get current file list and calculate CONTENT hash
             const currentFileList = [];
@@ -424,7 +445,7 @@ app.post('/api/checkbc', async (req, res) => {
             const currentHash = calculateContentHash(currentFileList);
 
             // Compare with registered hash
-            const registeredHash = pinesu.hash;
+            const registeredHash = vericl.hash;
             const filesMatch = (currentHash === registeredHash);
 
             process.chdir(originalCwd);
@@ -438,7 +459,7 @@ app.post('/api/checkbc', async (req, res) => {
                     txHash: reg.txhash,
                     block: reg.bkheight,
                     files: currentFileList.length,
-                    closed: pinesu.offhash?.closed || false,
+                    closed: vericl.offhash?.closed || false,
                     message: filesMatch ?
                         '✓ Files unchanged since registration' :
                         '⚠️ FILES HAVE BEEN MODIFIED!'
@@ -476,15 +497,22 @@ app.post('/api/checkfile', async (req, res) => {
         const content = fs.readFileSync(targetFile);
         const currentHash = crypto.createHash('sha256').update(content).digest('hex');
 
-        // Find parent directory with .pinesu.json
+        // Find parent directory with .vericl.json (or legacy .pinesu.json)
         let currentDir = path.dirname(targetFile);
-        let pinesuPath = null;
+        let vericlPath = null;
         let storageUnitDir = null;
 
         for (let i = 0; i < 10; i++) {
-            const testPath = path.join(currentDir, '.pinesu.json');
+            let testPath = path.join(currentDir, files.VERICL_FILE);
             if (fs.existsSync(testPath)) {
-                pinesuPath = testPath;
+                vericlPath = testPath;
+                storageUnitDir = currentDir;
+                break;
+            }
+            // Legacy fallback
+            testPath = path.join(currentDir, '.pinesu.json');
+            if (fs.existsSync(testPath)) {
+                vericlPath = testPath;
                 storageUnitDir = currentDir;
                 break;
             }
@@ -493,7 +521,7 @@ app.post('/api/checkfile', async (req, res) => {
             currentDir = parent;
         }
 
-        if (!pinesuPath) {
+        if (!vericlPath) {
             return res.json({
                 success: true,
                 data: {
@@ -506,14 +534,14 @@ app.post('/api/checkfile', async (req, res) => {
             });
         }
 
-        // Read pinesu file
-        const pinesu = JSON.parse(fs.readFileSync(pinesuPath, 'utf8'));
+        // Read vericl file
+        const vericl = JSON.parse(fs.readFileSync(vericlPath, 'utf8'));
         const relativePath = path.relative(storageUnitDir, targetFile).replace(/\\/g, '/');
 
         // Find if file is in filelist
         let fileFound = false;
-        if (pinesu.filelist) {
-            for (const entry of pinesu.filelist) {
+        if (vericl.filelist) {
+            for (const entry of vericl.filelist) {
                 const entryPath = entry.split(':')[0].replace(/\\/g, '/');
                 if (entryPath === relativePath ||
                     entryPath === './' + relativePath ||
@@ -537,7 +565,7 @@ app.post('/api/checkfile', async (req, res) => {
         process.chdir(originalCwd);
 
         // Compare current storage hash with registered hash
-        const storageModified = (currentStorageHash !== pinesu.hash);
+        const storageModified = (currentStorageHash !== vericl.hash);
 
         let message = '';
         if (fileFound) {
@@ -557,13 +585,253 @@ app.post('/api/checkfile', async (req, res) => {
                 currentHash,
                 inStorageUnit: fileFound,
                 modified: storageModified,
-                storageUnit: pinesu.header?.name || 'Unknown',
-                uuid: pinesu.header?.uuid,
-                registeredStorageHash: pinesu.hash,
+                storageUnit: vericl.header?.name || 'Unknown',
+                uuid: vericl.header?.uuid,
+                registeredStorageHash: vericl.hash,
                 currentStorageHash,
                 message
             }
         });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Export files as ZIP
+app.post('/api/export', async (req, res) => {
+    try {
+        const { targetPath, files: selectedFiles, exportLocation } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        if (!selectedFiles || selectedFiles.length === 0) {
+            return res.json({ success: false, error: 'No files selected for export.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        const originalCwd = process.cwd();
+        process.chdir(workingDir);
+
+        try {
+            const vericl = files.readVericlFile();
+            const reg = files.readRegistrationFile();
+
+            // Build file list with hashes
+            const exportList = [];
+            for (const filePath of selectedFiles) {
+                const fullPath = path.join(workingDir, filePath);
+                if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
+                    const content = fs.readFileSync(fullPath);
+                    const hash = crypto.createHash('sha256').update(content).digest('hex');
+                    exportList.push(`${filePath}:${hash}`);
+                }
+            }
+
+            // Create JSON with verification info
+            const exportInfo = {
+                storageUnit: vericl.header?.name || 'Unknown',
+                uuid: vericl.header?.uuid,
+                exportDate: new Date().toISOString(),
+                storageHash: vericl.hash,
+                registration: reg[0] !== "null" ? reg : null,
+                files: exportList
+            };
+
+            // Create ZIP using AdmZip
+            const AdmZip = require('adm-zip');
+            const zip = new AdmZip();
+
+            // Add verification info
+            zip.addFile('.vericl-export.json', Buffer.from(JSON.stringify(exportInfo, null, 2)));
+
+            // Add selected files
+            for (const filePath of selectedFiles) {
+                const fullPath = path.join(workingDir, filePath);
+                if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
+                    const dir = path.dirname(filePath);
+                    if (dir && dir !== '.') {
+                        zip.addLocalFile(fullPath, dir);
+                    } else {
+                        zip.addLocalFile(fullPath);
+                    }
+                }
+            }
+
+            // Generate filename and save
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const filename = `vericl_export_${timestamp}.zip`;
+
+            // Use custom export location if provided, otherwise default to parent directory
+            let exportPath;
+            if (exportLocation && exportLocation.trim() !== '') {
+                const customDir = exportLocation.trim();
+                if (!fs.existsSync(customDir)) {
+                    try {
+                        fs.mkdirSync(customDir, { recursive: true });
+                    } catch (e) {
+                        process.chdir(originalCwd);
+                        return res.json({ success: false, error: `Cannot create export directory: ${customDir}` });
+                    }
+                }
+                exportPath = path.join(customDir, filename);
+            } else {
+                exportPath = path.join(path.dirname(workingDir), filename);
+            }
+
+            zip.writeZip(exportPath);
+
+            process.chdir(originalCwd);
+
+            res.json({
+                success: true,
+                data: {
+                    filename,
+                    path: exportPath,
+                    files: selectedFiles.length
+                }
+            });
+        } catch (error) {
+            process.chdir(originalCwd);
+            throw error;
+        }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Close storage unit permanently
+app.post('/api/close', async (req, res) => {
+    try {
+        const { targetPath, ethHost } = req.body;
+        const host = ethHost || 'http://127.0.0.1:8545';
+
+        // Read config for wallet info
+        const config = readConfig();
+        if (!config || !config.wallet1) {
+            return res.json({ success: false, error: 'No wallet configured. Go to Settings first.' });
+        }
+
+        // If no targetPath provided, try to find a storage unit from staged items
+        let workingDir = targetPath && targetPath.trim() !== '' ? targetPath.trim() : null;
+
+        if (!workingDir) {
+            const sg = files.loadSG() || [];
+            if (sg.length > 0) {
+                workingDir = sg[0].path;
+            } else {
+                return res.json({ success: false, error: 'No storage unit path provided and nothing staged.' });
+            }
+        }
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        const originalCwd = process.cwd();
+        process.chdir(workingDir);
+
+        try {
+            // Support both new and legacy file names
+            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
+                process.chdir(originalCwd);
+                return res.json({ success: false, error: 'No storage unit found in this directory.' });
+            }
+
+            const vericl = files.readVericlFile();
+
+            // Check if already closed
+            if (vericl.offhash && vericl.offhash.closed) {
+                process.chdir(originalCwd);
+                return res.json({ success: false, error: 'Storage unit is already closed.' });
+            }
+
+            // Get current file list and calculate final hash
+            const fileList = [];
+            files.getFilelist('.', fileList);
+            const closureHash = calculateContentHash(fileList);
+
+            // Mark as closed
+            vericl.offhash = {
+                closed: true,
+                closedAt: new Date().toISOString(),
+                closureHash: closureHash
+            };
+            vericl.hash = closureHash;
+            vericl.header.mdtime = new Date().toISOString();
+
+            await files.saveVericlJSON(vericl);
+
+            // Try to register closure on blockchain
+            try {
+                const ethLogic = require('./logic/ethLogic');
+                ethLogic.connect(config.wallet1, config.wallet2, config.pkey || '', host);
+
+                // Register closure hash
+                const mc = files.loadTree();
+                const today = new Date();
+
+                const sg = [{ path: workingDir, uuid: vericl.header.uuid, hash: closureHash }];
+                const [openRoot, closedRoot, openL, closedL] = files.createSGTrees(sg);
+
+                if (closedRoot) {
+                    const [closedWitness, closedSG] = ethLogic.addToTree(closedRoot, mc, true, today, closedL);
+                }
+
+                const [mkcHash, receipt, bktimestamp] = await ethLogic.registerMC(mc);
+
+                // Create registration record
+                files.createRegistration({
+                    path: workingDir,
+                    type: "closure",
+                    mkcalroot: mkcHash,
+                    mkcaltimestamp: today.toISOString(),
+                    txhash: receipt.transactionHash,
+                    bkhash: receipt.blockHash,
+                    bkheight: receipt.blockNumber,
+                    bktimestamp,
+                    closureHash
+                });
+
+                files.saveTree(mc);
+
+                process.chdir(originalCwd);
+
+                res.json({
+                    success: true,
+                    data: {
+                        uuid: vericl.header.uuid,
+                        name: vericl.header.name,
+                        hash: closureHash,
+                        txHash: receipt.transactionHash,
+                        blockNumber: receipt.blockNumber,
+                        closed: true
+                    }
+                });
+            } catch (bcError) {
+                // Blockchain registration failed, but unit is still closed locally
+                process.chdir(originalCwd);
+                res.json({
+                    success: true,
+                    data: {
+                        uuid: vericl.header.uuid,
+                        name: vericl.header.name,
+                        hash: closureHash,
+                        closed: true,
+                        warning: `Closed locally, but blockchain registration failed: ${bcError.message}`
+                    }
+                });
+            }
+        } catch (error) {
+            process.chdir(originalCwd);
+            throw error;
+        }
     } catch (error) {
         res.json({ success: false, error: error.message });
     }
@@ -615,7 +883,7 @@ app.post('/api/git', async (req, res) => {
             return res.json({ success: false, error: 'Command required.' });
         }
 
-        // Use targetPath or current directory with .pinesu.json
+        // Use targetPath or current directory with .vericl.json
         let workingDir = targetPath && targetPath.trim() !== '' ? targetPath.trim() : process.cwd();
 
         if (!fs.existsSync(workingDir)) {

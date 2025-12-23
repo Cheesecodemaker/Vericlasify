@@ -31,16 +31,22 @@
 
         <div class="form-panel">
             <div class="form-group">
+                <label for="targetPath">Storage Unit Path</label>
+                <input type="text" id="targetPath" placeholder="C:\path\to\storage\unit">
+                <p class="form-hint">Path to the storage unit directory to close</p>
+            </div>
+
+            <div class="form-group">
                 <label for="ethHost">Blockchain Host</label>
                 <input type="text" id="ethHost" value="http://127.0.0.1:8545">
                 <p class="form-hint">Ethereum node address for registration</p>
             </div>
 
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="confirmClose">
-                    <span>I understand this action is irreversible</span>
-                </label>
+            <div class="form-group" style="display: flex; align-items: center; gap: 12px;">
+                <input type="checkbox" id="confirmClose"
+                    style="width: 20px; height: 20px; margin: 0; cursor: pointer; accent-color: #ef4444; flex-shrink: 0;">
+                <label for="confirmClose" style="cursor: pointer; margin: 0;">I understand this action is
+                    irreversible</label>
             </div>
 
             <button class="execute-btn" style="background: linear-gradient(135deg, #ef4444, #dc2626);"
@@ -77,6 +83,12 @@
             const btn = document.querySelector('.execute-btn');
             const confirmed = document.getElementById('confirmClose').checked;
             const ethHost = document.getElementById('ethHost').value;
+            const targetPath = document.getElementById('targetPath').value;
+
+            if (!targetPath.trim()) {
+                log('✖ Please enter the storage unit path', 'error');
+                return;
+            }
 
             if (!confirmed) {
                 log('✖ Please confirm you understand this is irreversible', 'error');
@@ -88,7 +100,7 @@
 
             log('Sending close request to server...', 'info');
 
-            const result = await apiCall('/close', 'POST', { ethHost });
+            const result = await apiCall('/close', 'POST', { targetPath, ethHost });
 
             if (result.success) {
                 log('✔ Storage unit closed!', 'success');
@@ -96,6 +108,9 @@
                 log('🔒 Closure Details:', 'info');
                 log(`   Hash: ${result.data.hash.substring(0, 20)}...`);
                 log(`   Status: IMMUTABLE`);
+                if (result.data.warning) {
+                    log(`   ⚠️ ${result.data.warning}`, 'warning');
+                }
                 log('');
                 log('This storage unit can no longer be modified.', 'warning');
                 setStatus('Closed', 'success');

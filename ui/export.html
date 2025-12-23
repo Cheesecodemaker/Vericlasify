@@ -9,6 +9,83 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
+    <style>
+        .file-checkbox-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-checkbox-row:hover {
+            background: rgba(138, 99, 255, 0.1);
+            border-color: rgba(138, 99, 255, 0.3);
+        }
+
+        .file-checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .file-checkbox-row .file-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #fff;
+            flex: 1;
+        }
+
+        .file-checkbox-row .file-size {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-left: 1rem;
+        }
+
+        .select-all-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .select-all-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .select-all-row label {
+            font-size: 0.85rem;
+            color: var(--accent);
+            cursor: pointer;
+        }
+
+        .load-btn {
+            background: rgba(138, 99, 255, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .load-btn:hover {
+            background: rgba(138, 99, 255, 0.3);
+        }
+    </style>
 </head>
 
 <body>
@@ -31,13 +108,30 @@
 
         <div class="form-panel">
             <div class="form-group">
-                <label>Select Files to Export</label>
-                <div id="fileList" style="margin-top: 0.5rem;">
-                    <!-- Simulated file list -->
+                <label for="targetPath">Storage Unit Path</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="targetPath" placeholder="C:\path\to\storage\unit" style="flex: 1;">
+                    <button class="load-btn" onclick="loadFiles()">📂 Load Files</button>
                 </div>
+                <p class="form-hint">Enter the path to a storage unit directory</p>
             </div>
 
-            <button class="execute-btn" onclick="executeExport()">
+            <div class="form-group" id="fileListContainer" style="display: none;">
+                <label>Select Files to Export</label>
+                <div class="select-all-row">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                    <label for="selectAll">Select All</label>
+                </div>
+                <div id="fileList" style="max-height: 250px; overflow-y: auto;"></div>
+            </div>
+
+            <div class="form-group" id="exportLocationContainer" style="display: none;">
+                <label for="exportLocation">Export Location (Optional)</label>
+                <input type="text" id="exportLocation" placeholder="Leave empty for default (parent directory)">
+                <p class="form-hint">Full path where the ZIP file will be saved</p>
+            </div>
+
+            <button class="execute-btn" onclick="executeExport()" id="exportBtn" disabled>
                 📤 Export Selected Files
             </button>
         </div>
@@ -66,27 +160,64 @@
 
     <script src="shared.js"></script>
     <script>
-        const sampleFiles = [
-            'README.md',
-            'src/index.js',
-            'src/utils.js',
-            'docs/paper.pdf',
-            'data/results.json'
-        ];
+        let loadedFiles = [];
+        let currentPath = '';
 
-        // Render file checkboxes
-        document.addEventListener('DOMContentLoaded', () => {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = sampleFiles.map((file, i) => `
-        <label style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 6px; cursor: pointer;">
-          <input type="checkbox" name="exportFile" value="${file}" ${i < 2 ? 'checked' : ''}>
-          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">${file}</span>
-        </label>
-      `).join('');
-        });
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
 
-        function executeExport() {
-            const btn = document.querySelector('.execute-btn');
+        async function loadFiles() {
+            const targetPath = document.getElementById('targetPath').value;
+            if (!targetPath) {
+                log('✖ Please enter a storage unit path', 'error');
+                return;
+            }
+
+            log('Loading files from storage unit...', 'info');
+            setStatus('Loading...', 'warning');
+
+            const result = await apiCall('/listfiles', 'POST', { targetPath });
+
+            if (result.success) {
+                loadedFiles = result.data.files;
+                currentPath = targetPath;
+
+                const fileList = document.getElementById('fileList');
+                const container = document.getElementById('fileListContainer');
+
+                container.style.display = 'block';
+                document.getElementById('exportLocationContainer').style.display = 'block';
+                document.getElementById('exportBtn').disabled = false;
+                document.getElementById('selectAll').checked = false;
+
+                fileList.innerHTML = loadedFiles.map((f, i) => `
+                    <label class="file-checkbox-row">
+                        <input type="checkbox" name="exportFile" value="${f.path}" data-index="${i}">
+                        <span class="file-name">${f.path}</span>
+                        <span class="file-size">${formatSize(f.size)}</span>
+                    </label>
+                `).join('');
+
+                log(`✔ Loaded ${result.data.totalFiles} files from "${result.data.storageUnit}"`, 'success');
+                setStatus('Files Loaded', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            document.querySelectorAll('input[name="exportFile"]').forEach(cb => {
+                cb.checked = selectAll;
+            });
+        }
+
+        async function executeExport() {
+            const btn = document.getElementById('exportBtn');
             const checked = document.querySelectorAll('input[name="exportFile"]:checked');
             const files = Array.from(checked).map(c => c.value);
 
@@ -100,31 +231,34 @@
 
             log(`Exporting ${files.length} file(s)...`, 'info');
 
-            simulateExecution(() => {
-                files.forEach(f => log(`   Including: ${f}`));
-                log('Generating verification proofs...');
+            const exportLocation = document.getElementById('exportLocation').value.trim();
 
-                simulateExecution(() => {
-                    log('✔ Proofs generated', 'success');
-                    log('Creating export package...');
+            const result = await apiCall('/export', 'POST', {
+                targetPath: currentPath,
+                files: files,
+                exportLocation: exportLocation || null
+            });
 
-                    simulateExecution(() => {
-                        const exportName = `export_${Date.now()}.zip`;
+            if (result.success) {
+                files.forEach(f => log(`   ✔ ${f}`, 'success'));
+                log('');
+                log('═══════════════════════════════════════', 'success');
+                log('   📦 EXPORT COMPLETE!', 'success');
+                log('═══════════════════════════════════════', 'success');
+                log('');
+                log('📦 Export Package:', 'info');
+                log(`   Filename: ${result.data.filename}`);
+                log(`   Files: ${files.length}`);
+                log(`   Location: ${result.data.path}`);
+                log('');
+                log('Package includes verification proofs.', 'info');
+                setStatus('Exported', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
 
-                        log('✔ Export complete!', 'success');
-                        log('');
-                        log('📦 Export Package:', 'info');
-                        log(`   Filename: ${exportName}`);
-                        log(`   Files: ${files.length}`);
-                        log('   Includes: verification proofs');
-                        log('');
-                        log('Package saved to current directory.', 'info');
-
-                        setStatus('Exported', 'success');
-                        setButtonLoading(btn, false, '📤 Export Selected Files');
-                    }, 600, 1000);
-                }, 500, 800);
-            }, 400, 700);
+            setButtonLoading(btn, false, '📤 Export Selected Files');
         }
     </script>
 </body>
