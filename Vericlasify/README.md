@@ -3,13 +3,13 @@
 Combines Git with Ethereum blockchain for integrity protection.
 
 
-```bash
+
 # Start blockchain (separate terminal)
 ganache-cli
 
 # Run Vericlasify
 node index.js
-```
+
 
 ## Commands
 

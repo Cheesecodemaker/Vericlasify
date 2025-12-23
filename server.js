@@ -36,13 +36,24 @@ function isServerDirectory(checkPath) {
 }
 
 // Calculate content-aware hash of all files in a directory
+// Returns combined hash for backwards compatibility
 function calculateContentHash(fileList) {
+    const result = calculateContentHashWithDetails(fileList);
+    return result.combinedHash;
+}
+
+// Calculate content hash AND return individual file hashes
+function calculateContentHashWithDetails(fileList) {
+    const fileHashes = {};
     const hashedList = [];
+
     for (const filePath of fileList) {
         try {
             if (fs.lstatSync(filePath).isFile()) {
                 const content = fs.readFileSync(filePath);
                 const hash = crypto.createHash('sha256').update(content).digest('hex');
+                const normalizedPath = filePath.replace(/\\/g, '/');
+                fileHashes[normalizedPath] = hash;
                 hashedList.push(`${filePath}:${hash}`);
             } else {
                 hashedList.push(`${filePath}:dir`);
@@ -52,7 +63,12 @@ function calculateContentHash(fileList) {
         }
     }
     hashedList.sort();
-    return crypto.createHash('sha256').update(JSON.stringify(hashedList)).digest('hex');
+    const combinedHash = crypto.createHash('sha256').update(JSON.stringify(hashedList)).digest('hex');
+
+    return {
+        combinedHash,
+        fileHashes
+    };
 }
 
 app.get('/api', (req, res) => {
@@ -185,8 +201,8 @@ app.post('/api/create', async (req, res) => {
             const fileList = [];
             files.getFilelist('.', fileList);
 
-            // Calculate hash from actual file CONTENTS
-            const contentHash = calculateContentHash(fileList);
+            // Calculate hash from actual file CONTENTS (with individual hashes)
+            const { combinedHash: contentHash, fileHashes } = calculateContentHashWithDetails(fileList);
 
             const vericl = {
                 header: {
@@ -196,9 +212,11 @@ app.post('/api/create', async (req, res) => {
                     crtime: now
                 },
                 filelist: fileList,
+                fileHashes: fileHashes,  // Store individual file hashes
                 hash: contentHash,
                 offhash: { closed: false }
             };
+
 
             await files.saveVericlJSON(vericl);
 
@@ -302,18 +320,20 @@ app.post('/api/update', async (req, res) => {
             const fileList = [];
             files.getFilelist('.', fileList);
 
-            // Calculate new content hash
-            const newHash = calculateContentHash(fileList);
+            // Calculate new content hash with individual file hashes
+            const { combinedHash: newHash, fileHashes } = calculateContentHashWithDetails(fileList);
 
             // Update vericl with new values
             vericl.header.mdtime = new Date().toISOString();
             vericl.filelist = fileList;
+            vericl.fileHashes = fileHashes;  // Update individual file hashes
             vericl.hash = newHash;
 
             // Save previous hash info
             vericl.header.prevhash = oldHash;
 
             await files.saveVericlJSON(vericl);
+
 
             process.chdir(originalCwd);
 
@@ -537,45 +557,76 @@ app.post('/api/checkfile', async (req, res) => {
         // Read vericl file
         const vericl = JSON.parse(fs.readFileSync(vericlPath, 'utf8'));
         const relativePath = path.relative(storageUnitDir, targetFile).replace(/\\/g, '/');
+        const relativePathWithDot = './' + relativePath;
 
         // Find if file is in filelist
         let fileFound = false;
+        let matchedPath = null;
         if (vericl.filelist) {
             for (const entry of vericl.filelist) {
                 const entryPath = entry.split(':')[0].replace(/\\/g, '/');
                 if (entryPath === relativePath ||
-                    entryPath === './' + relativePath ||
+                    entryPath === relativePathWithDot ||
                     entryPath === relativePath.replace(/^\.\//, '') ||
                     relativePath.endsWith(entryPath) ||
                     entryPath.endsWith(relativePath)) {
                     fileFound = true;
+                    matchedPath = entryPath;
                     break;
                 }
             }
         }
 
-        // Recalculate storage unit hash with current files to detect any changes
-        const originalCwd = process.cwd();
-        process.chdir(storageUnitDir);
+        // Check if individual file hashes are available
+        let fileModified = null;
+        let registeredFileHash = null;
 
-        const fileList = [];
-        files.getFilelist('.', fileList);
-        const currentStorageHash = calculateContentHash(fileList);
+        if (vericl.fileHashes) {
+            // Try to find the registered hash for this specific file
+            registeredFileHash = vericl.fileHashes[relativePath] ||
+                vericl.fileHashes[relativePathWithDot] ||
+                vericl.fileHashes[matchedPath];
 
-        process.chdir(originalCwd);
+            if (registeredFileHash) {
+                // Compare individual file hash
+                fileModified = (currentHash !== registeredFileHash);
+            }
+        }
 
-        // Compare current storage hash with registered hash
-        const storageModified = (currentStorageHash !== vericl.hash);
+        // Fallback: If no individual hash, check storage unit hash
+        let storageModified = false;
+        if (fileModified === null) {
+            const originalCwd = process.cwd();
+            process.chdir(storageUnitDir);
 
+            const fileList = [];
+            files.getFilelist('.', fileList);
+            const currentStorageHash = calculateContentHash(fileList);
+
+            process.chdir(originalCwd);
+
+            storageModified = (currentStorageHash !== vericl.hash);
+            fileModified = storageModified;  // Fallback to storage-level check
+        }
+
+        // Build response message
         let message = '';
-        if (fileFound) {
-            if (storageModified) {
-                message = '⚠️ FILES HAVE BEEN MODIFIED! Storage unit hash mismatch.';
+        if (!fileFound) {
+            message = '⚠️ File not found in registered file list - may be a new file.';
+        } else if (registeredFileHash) {
+            // Individual file hash comparison
+            if (fileModified) {
+                message = '⚠️ THIS FILE HAS BEEN MODIFIED! Hash mismatch.';
+            } else {
+                message = '✓ File integrity verified - this file has not been modified.';
+            }
+        } else {
+            // Fallback to storage-level message
+            if (fileModified) {
+                message = '⚠️ Storage unit modified. (Upgrade by running Update to enable per-file tracking)';
             } else {
                 message = '✓ File integrity verified - no modifications detected.';
             }
-        } else {
-            message = '⚠️ File not found in registered file list - may be a new file.';
         }
 
         res.json({
@@ -583,15 +634,17 @@ app.post('/api/checkfile', async (req, res) => {
             data: {
                 path: targetFile,
                 currentHash,
+                registeredHash: registeredFileHash || null,
                 inStorageUnit: fileFound,
-                modified: storageModified,
+                modified: fileModified,
                 storageUnit: vericl.header?.name || 'Unknown',
                 uuid: vericl.header?.uuid,
                 registeredStorageHash: vericl.hash,
-                currentStorageHash,
+                hasIndividualHashes: !!vericl.fileHashes,
                 message
             }
         });
+
     } catch (error) {
         res.json({ success: false, error: error.message });
     }
@@ -777,7 +830,7 @@ app.post('/api/close', async (req, res) => {
                 const mc = files.loadTree();
                 const today = new Date();
 
-                const sg = [{ path: workingDir, uuid: vericl.header.uuid, hash: closureHash }];
+                const sg = [{ path: workingDir, uuid: vericl.header.uuid, hash: closureHash, closed: true }];
                 const [openRoot, closedRoot, openL, closedL] = files.createSGTrees(sg);
 
                 if (closedRoot) {
@@ -906,6 +959,153 @@ app.post('/api/git', async (req, res) => {
         }
 
         res.json({ success: true, output: output || 'Command executed (no output)' });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Get git status (changed files)
+app.post('/api/git-status', async (req, res) => {
+    try {
+        const { targetPath } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        // Check if it's a git repository
+        if (!fs.existsSync(path.join(workingDir, '.git'))) {
+            return res.json({ success: false, error: 'Not a Git repository. Create a storage unit first.' });
+        }
+
+        const simpleGit = require('simple-git');
+        const git = simpleGit(workingDir);
+
+        try {
+            const status = await git.status();
+            const files = [];
+
+            // Modified files
+            for (const file of status.modified) {
+                files.push({ path: file, status: 'modified' });
+            }
+
+            // Deleted files
+            for (const file of status.deleted) {
+                files.push({ path: file, status: 'deleted' });
+            }
+
+            // New/untracked files
+            for (const file of status.not_added) {
+                files.push({ path: file, status: 'new' });
+            }
+
+            // Staged but modified
+            for (const file of status.staged) {
+                if (!files.find(f => f.path === file)) {
+                    files.push({ path: file, status: 'modified' });
+                }
+            }
+
+            res.json({
+                success: true,
+                data: {
+                    files,
+                    branch: status.current,
+                    isClean: status.isClean()
+                }
+            });
+        } catch (gitError) {
+            res.json({ success: false, error: gitError.message || 'Git status failed' });
+        }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Revert a single file
+app.post('/api/revert', async (req, res) => {
+    try {
+        const { targetPath, filePath } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        if (!filePath || filePath.trim() === '') {
+            return res.json({ success: false, error: 'File path is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        const simpleGit = require('simple-git');
+        const git = simpleGit(workingDir);
+
+        try {
+            // Use git checkout to restore the file to its last committed state
+            await git.checkout(['--', filePath.trim()]);
+
+            res.json({
+                success: true,
+                data: {
+                    reverted: filePath.trim(),
+                    message: 'File reverted successfully'
+                }
+            });
+        } catch (gitError) {
+            res.json({ success: false, error: gitError.message || 'Git revert failed' });
+        }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Revert all modified files
+app.post('/api/revert-all', async (req, res) => {
+    try {
+        const { targetPath } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        const simpleGit = require('simple-git');
+        const git = simpleGit(workingDir);
+
+        try {
+            // Get the list of modified files first
+            const status = await git.status();
+            const modifiedCount = status.modified.length + status.deleted.length;
+
+            // Use git checkout to restore all tracked files
+            await git.checkout(['--', '.']);
+
+            res.json({
+                success: true,
+                data: {
+                    count: modifiedCount,
+                    message: 'All modified files reverted successfully'
+                }
+            });
+        } catch (gitError) {
+            res.json({ success: false, error: gitError.message || 'Git revert failed' });
+        }
     } catch (error) {
         res.json({ success: false, error: error.message });
     }

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revert Files - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        .file-browser {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            margin-top: 1rem;
+            max-height: 350px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .file-browser.active {
+            display: block;
+        }
+
+        .file-browser-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: rgba(15, 15, 20, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .file-browser-header h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .file-browser-header span {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .file-list {
+            padding: 0.5rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-item:hover {
+            background: rgba(138, 99, 255, 0.15);
+        }
+
+        .file-item.selected {
+            background: rgba(138, 99, 255, 0.25);
+            border: 1px solid var(--accent);
+        }
+
+        .file-item.modified {
+            border-left: 3px solid #f59e0b;
+        }
+
+        .file-item.deleted {
+            border-left: 3px solid #ef4444;
+        }
+
+        .file-item.new {
+            border-left: 3px solid #22c55e;
+        }
+
+        .file-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            margin-right: 0.75rem;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 0.85rem;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-meta {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 0.15rem;
+        }
+
+        .file-status {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .file-status.modified {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .file-status.deleted {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .file-status.new {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .load-btn {
+            background: rgba(138, 99, 255, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .load-btn:hover {
+            background: rgba(138, 99, 255, 0.3);
+        }
+
+        .selected-file-display {
+            background: rgba(138, 99, 255, 0.1);
+            border: 1px solid rgba(138, 99, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .selected-file-display.active {
+            display: block;
+        }
+
+        .selected-file-display .label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .selected-file-display .path {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 0.25rem;
+            word-break: break-all;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-group button {
+            flex: 1;
+        }
+
+        .revert-btn {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+        }
+
+        .revert-btn:hover {
+            background: linear-gradient(135deg, #d97706, #b45309) !important;
+        }
+
+        .no-changes {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .no-changes .icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>⏪</span>
+                <h1>Revert Files</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Restores modified files to their last committed state using Git.
+            Select files with changes to revert them back to their original version.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="targetPath">Storage Unit Path</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="targetPath" placeholder="C:\path\to\storage\unit" style="flex: 1;">
+                    <button class="load-btn" onclick="loadChangedFiles()">📂 Scan Changes</button>
+                </div>
+                <p class="form-hint">Enter the path to a storage unit directory with Git</p>
+            </div>
+
+            <div class="file-browser" id="fileBrowser">
+                <div class="file-browser-header">
+                    <h4>📝 Changed Files</h4>
+                    <span id="fileCount">0 files</span>
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <div class="selected-file-display" id="selectedFileDisplay">
+                <div class="label">Selected File</div>
+                <div class="path" id="selectedFilePath"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="execute-btn revert-btn" onclick="executeRevert()" id="revertBtn" disabled>
+                    ⏪ Revert Selected File
+                </button>
+                <button class="execute-btn" onclick="executeRevertAll()" id="revertAllBtn" disabled
+                    style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                    🔄 Revert All Changes
+                </button>
+            </div>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        let selectedFile = null;
+        let changedFiles = [];
+        let currentPath = '';
+
+        function getStatusIcon(status) {
+            if (status === 'modified') return '✏️';
+            if (status === 'deleted') return '🗑️';
+            if (status === 'new') return '✨';
+            return '📄';
+        }
+
+        function getStatusLabel(status) {
+            if (status === 'modified') return 'Modified';
+            if (status === 'deleted') return 'Deleted';
+            if (status === 'new') return 'New';
+            return 'Unknown';
+        }
+
+        async function loadChangedFiles() {
+            const targetPath = document.getElementById('targetPath').value;
+            if (!targetPath) {
+                log('✖ Please enter a storage unit path', 'error');
+                return;
+            }
+
+            currentPath = targetPath;
+            log('Scanning for changed files...', 'info');
+            setStatus('Scanning...', 'warning');
+
+            const result = await apiCall('/git-status', 'POST', { targetPath });
+
+            if (result.success) {
+                const browser = document.getElementById('fileBrowser');
+                const fileList = document.getElementById('fileList');
+                const fileCount = document.getElementById('fileCount');
+
+                changedFiles = result.data.files || [];
+
+                if (changedFiles.length === 0) {
+                    browser.classList.add('active');
+                    fileList.innerHTML = `
+                        <div class="no-changes">
+                            <div class="icon">✅</div>
+                            <div>No changes detected</div>
+                            <div style="font-size: 0.8rem; margin-top: 0.25rem;">All files match their committed versions</div>
+                        </div>
+                    `;
+                    fileCount.textContent = '0 files';
+                    document.getElementById('revertAllBtn').disabled = true;
+                    log('✔ No uncommitted changes found', 'success');
+                    setStatus('Clean', 'success');
+                } else {
+                    browser.classList.add('active');
+                    fileCount.textContent = `${changedFiles.length} file(s)`;
+
+                    fileList.innerHTML = changedFiles.map((f, idx) => `
+                        <div class="file-item ${f.status}" onclick="selectFile(${idx}, '${f.path.replace(/\\/g, '\\\\')}')">
+                            <div class="file-icon">${getStatusIcon(f.status)}</div>
+                            <div class="file-info">
+                                <div class="file-name">${f.path}</div>
+                                <div class="file-meta">${f.status === 'new' ? 'Untracked file' : 'Git tracked'}</div>
+                            </div>
+                            <span class="file-status ${f.status}">${getStatusLabel(f.status)}</span>
+                        </div>
+                    `).join('');
+
+                    document.getElementById('revertAllBtn').disabled = false;
+                    log(`✔ Found ${changedFiles.length} changed file(s)`, 'success');
+                    setStatus('Changes Found', 'warning');
+                }
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+        }
+
+        function selectFile(idx, displayPath) {
+            selectedFile = changedFiles[idx];
+
+            // Update UI
+            document.querySelectorAll('.file-item').forEach(item => item.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            document.getElementById('selectedFileDisplay').classList.add('active');
+            document.getElementById('selectedFilePath').textContent = displayPath;
+            document.getElementById('revertBtn').disabled = selectedFile.status === 'new';
+
+            if (selectedFile.status === 'new') {
+                log(`Selected: ${displayPath} (untracked - cannot revert, only delete)`, 'warning');
+            } else {
+                log(`Selected: ${displayPath}`, 'info');
+            }
+        }
+
+        async function executeRevert() {
+            if (!selectedFile) {
+                log('✖ Please select a file first', 'error');
+                return;
+            }
+
+            if (selectedFile.status === 'new') {
+                log('✖ Cannot revert untracked files. Delete them manually if needed.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('revertBtn');
+            setButtonLoading(btn, true);
+            setStatus('Reverting...', 'warning');
+
+            log(`Reverting file: ${selectedFile.path}`, 'info');
+
+            const result = await apiCall('/revert', 'POST', {
+                targetPath: currentPath,
+                filePath: selectedFile.path
+            });
+
+            if (result.success) {
+                log('');
+                log('═══════════════════════════════════════', 'success');
+                log('   ✅ FILE REVERTED SUCCESSFULLY', 'success');
+                log('═══════════════════════════════════════', 'success');
+                log('');
+                log(`📄 ${selectedFile.path}`, 'info');
+                log('   Restored to last committed version');
+                log('');
+                setStatus('Reverted ✓', 'success');
+
+                // Refresh the file list
+                setTimeout(() => loadChangedFiles(), 500);
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '⏪ Revert Selected File');
+        }
+
+        async function executeRevertAll() {
+            if (changedFiles.length === 0) {
+                log('✖ No files to revert', 'error');
+                return;
+            }
+
+            const modifiedFiles = changedFiles.filter(f => f.status !== 'new');
+            if (modifiedFiles.length === 0) {
+                log('✖ No modified files to revert (only untracked files found)', 'error');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to revert ALL ${modifiedFiles.length} modified file(s)? This cannot be undone.`)) {
+                return;
+            }
+
+            const btn = document.getElementById('revertAllBtn');
+            setButtonLoading(btn, true);
+            setStatus('Reverting all...', 'warning');
+
+            log(`Reverting all ${modifiedFiles.length} modified files...`, 'info');
+
+            const result = await apiCall('/revert-all', 'POST', { targetPath: currentPath });
+
+            if (result.success) {
+                log('');
+                log('═══════════════════════════════════════', 'success');
+                log('   ✅ ALL FILES REVERTED', 'success');
+                log('═══════════════════════════════════════', 'success');
+                log('');
+                log(`📁 Reverted ${result.data.count} file(s)`, 'info');
+                log('   All tracked files restored to last commit');
+                log('');
+                setStatus('All Reverted ✓', 'success');
+
+                // Refresh the file list
+                setTimeout(() => loadChangedFiles(), 500);
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '🔄 Revert All Changes');
+        }
+    </script>
+</body>
+
+</html>

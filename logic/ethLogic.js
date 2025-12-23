@@ -27,7 +27,21 @@ module.exports = {
             })
         }
         const sg = new mkc.StorageGroup(hash, map);
-        const leaf = mc.addRegistration(uuid, hash, date, closed, sg, null, null);
+
+        // Ensure date is a valid Date object
+        let validDate;
+        if (date instanceof Date && !isNaN(date.getTime())) {
+            validDate = date;
+        } else if (typeof date === 'string' || typeof date === 'number') {
+            validDate = new Date(date);
+            if (isNaN(validDate.getTime())) {
+                validDate = new Date(); // Fallback to current date
+            }
+        } else {
+            validDate = new Date(); // Fallback to current date
+        }
+
+        const leaf = mc.addRegistration(uuid, hash, validDate, closed, sg, null, null);
         const month = leaf.parent;
         const year = month.parent;
         let witness;
@@ -50,9 +64,15 @@ module.exports = {
     },
 
     deserializeMC(mcFile) {
-        const mc = new mkc.MerkleCalendar();
-        mc.deserializeMC(mcFile);
-        return mc;
+        try {
+            const mc = new mkc.MerkleCalendar();
+            mc.deserializeMC(mcFile);
+            return mc;
+        } catch (e) {
+            // If deserialization fails (e.g., invalid dates), return a fresh calendar
+            console.log('Warning: Could not deserialize merkle calendar, creating new one:', e.message);
+            return new mkc.MerkleCalendar();
+        }
     },
 
     returnEmptyMC() {

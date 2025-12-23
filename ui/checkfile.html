@@ -321,16 +321,29 @@
                 log('');
                 log('📄 File Details:', 'info');
                 log(`   Path: ${result.data.path}`);
-                log(`   File Hash: ${result.data.currentHash?.substring(0, 16)}...`);
+                log(`   Current Hash: ${result.data.currentHash?.substring(0, 20)}...`);
                 log(`   In Storage Unit: ${result.data.inStorageUnit ? 'Yes' : 'No'}`);
                 if (result.data.storageUnit && result.data.storageUnit !== 'Unknown') {
                     log(`   Storage Unit: ${result.data.storageUnit}`);
                 }
                 log('');
                 log('🔐 Hash Comparison:', 'info');
-                log(`   Registered: ${result.data.registeredStorageHash?.substring(0, 20)}...`);
-                log(`   Current:    ${result.data.currentStorageHash?.substring(0, 20)}...`);
-                log(`   Match: ${result.data.modified ? '❌ NO' : '✅ YES'}`);
+                if (result.data.registeredHash) {
+                    // Individual file hash available
+                    log(`   Registered (file): ${result.data.registeredHash?.substring(0, 20)}...`);
+                    log(`   Current (file):    ${result.data.currentHash?.substring(0, 20)}...`);
+                    log(`   Match: ${result.data.modified ? '❌ NO' : '✅ YES'}`);
+                    if (!result.data.modified) {
+                        log('   ✓ Per-file verification: This specific file is unchanged', 'success');
+                    }
+                } else {
+                    // Fallback to storage unit hash
+                    log(`   Storage Hash: ${result.data.registeredStorageHash?.substring(0, 20)}...`);
+                    log(`   Match: ${result.data.modified ? '❌ NO' : '✅ YES'}`);
+                    if (!result.data.hasIndividualHashes) {
+                        log('   ⓘ Tip: Run "Update" to enable per-file hash tracking', 'warning');
+                    }
+                }
                 log('');
                 log(`📝 ${result.data.message}`, result.data.modified ? 'error' : 'success');
                 setStatus(result.data.modified ? 'Modified!' : 'Verified ✓', result.data.modified ? 'error' : 'success');
@@ -338,6 +351,7 @@
                 log(`✖ ${result.error}`, 'error');
                 setStatus('Failed', 'error');
             }
+
 
             setButtonLoading(btn, false, '📄 Verify Selected File');
         }
