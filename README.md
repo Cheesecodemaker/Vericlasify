@@ -8,7 +8,6 @@ ganache-cli
 
 # Run Vericlasify
 node index.js
-\`\`\`
 
 ## Commands
 
