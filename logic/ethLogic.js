@@ -1,5 +1,5 @@
 const EthConnector = require('../connectors/ethConnector');
-const {v4: uuidv4} = require("uuid");
+const { v4: uuidv4 } = require("uuid");
 const mkc = require('merkle-calendar');
 
 let ethConnector;
@@ -19,8 +19,8 @@ module.exports = {
         const uuid = uuidv4();
         const map = [];
         const mapR = [];
-        for (let su in storageGroup){
-            map.push(new mkc.StorageUnit(su.hash,su.uuid));
+        for (let su of storageGroup) {
+            map.push(new mkc.StorageUnit(su.hash, su.uuid));
             mapR.push({
                 'hash': su.hash,
                 'uuid': su.uuid
@@ -31,7 +31,7 @@ module.exports = {
         const month = leaf.parent;
         const year = month.parent;
         let witness;
-        if (!closed){
+        if (!closed) {
             witness = {
                 closedroot: mc.closed.hash,
                 years: mc.open.getChildrenHashes(),
@@ -55,7 +55,7 @@ module.exports = {
         return mc;
     },
 
-    returnEmptyMC(){
+    returnEmptyMC() {
         return new mkc.MerkleCalendar();
     },
 

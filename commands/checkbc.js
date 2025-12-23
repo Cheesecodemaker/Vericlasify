@@ -25,25 +25,25 @@ async function run() {
 
     try {
 
-        if (!files.fileExists('.pinesu.json')) {
+        if (!files.fileExists('.vericl.json')) {
             spinner.fail('No Storage Unit');
             return;
         }
 
-        if (!files.fileExists('.regpinesu.json')) {
+        if (!files.fileExists('.regvericl.json')) {
             spinner.fail('Not registered');
             console.log(chalk.yellow('💡 Use syncwbc first'));
             return;
         }
 
         spinner.text = 'Reading files...';
-        const pinesu = files.readPineSUFile();
+        const vericl = files.readVericlFile();
         const registration = files.readRegistrationFile();
 
         spinner.text = 'Checking blockchain...';
 
         // Use wallet address (w1) for verification since owner may not be set
-        const ownerAddress = pinesu.header.owner || w1;
+        const ownerAddress = vericl.header.owner || w1;
 
         const [isValid, owner] = await ethLogic.verifyHash(
             registration.txhash,
@@ -62,22 +62,22 @@ async function run() {
         const filelist = await gitLogic.calculateSU();
         const computedMerkleRoot = gitLogic.calculateTree(filelist);
 
-        if (computedMerkleRoot !== pinesu.header.merkleroot) {
+        if (computedMerkleRoot !== vericl.header.merkleroot) {
             spinner.fail('Files modified!');
             console.log(chalk.red('✖ Integrity violation detected'));
             return;
         }
 
-        const computedSUHash = gitLogic.calculateHeader(pinesu.header);
+        const computedSUHash = gitLogic.calculateHeader(vericl.header);
 
-        if (computedSUHash !== pinesu.hash) {
+        if (computedSUHash !== vericl.hash) {
             spinner.fail('Metadata tampered!');
             return;
         }
 
         spinner.text = 'Verifying proof...';
 
-        const [proofValid, proofDetails] = treelist.validateProof(pinesu.hash, registration);
+        const [proofValid, proofDetails] = treelist.validateProof(vericl.hash, registration);
 
         if (!proofValid) {
             spinner.fail('Proof invalid');
@@ -92,7 +92,7 @@ async function run() {
         console.log(chalk.gray('  Block: ') + registration.bkheight);
         console.log(chalk.gray('  TX: ') + registration.txhash);
 
-        if (pinesu.offhash.closed) {
+        if (vericl.offhash.closed) {
             console.log(chalk.yellow('\n🔒 CLOSED (immutable)'));
         }
 

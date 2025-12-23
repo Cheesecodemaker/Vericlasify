@@ -19,9 +19,9 @@ const gitCommand = require('./commands/git');
 const helpCommand = require('./commands/help');
 
 async function createOrUpdateCommand() {
-    if (files.fileExists('.pinesu.json')) {
-        const pinesu = files.readPineSUFile();
-        if (pinesu.offhash && pinesu.offhash.closed) {
+    if (files.fileExists('.vericl.json')) {
+        const vericl = files.readVericlFile();
+        if (vericl.offhash && vericl.offhash.closed) {
             console.log(chalk.red('✖ Closed - cannot modify'));
             return;
         }
@@ -64,6 +64,7 @@ async function main() {
             console.log('\n');
         } catch (error) {
             console.error(chalk.red('✖'), error.message);
+            console.error(chalk.gray(error.stack));
         }
     }
 }

@@ -73,8 +73,8 @@ module.exports = {
 
     async calculateSU() {
         let res = [];
-        files.getFilelist("",res);
-        res = res.map(function(x){ return x.replace(/\\/g, '/') });
+        files.getFilelist("", res);
+        res = res.map(function (x) { return x.replace(/\\/g, '/') });
         return treelist.createHashTree(res);
     },
 
@@ -94,11 +94,11 @@ module.exports = {
     },
 
     createFilesJSON(list) {
-        const pinesufile = files.readPineSUFile();
-        let root = pinesufile.hash;
-        const owner = pinesufile.owner;
+        const vericlfile = files.readVericlFile();
+        let root = vericlfile.hash;
+        const owner = vericlfile.owner;
         if (!treelist.sameRoot(root)) {
-            root = module.exports.calculateTree(pinesufile.filelist);
+            root = module.exports.calculateTree(vericlfile.filelist);
         }
         const res = [];
         let el;
