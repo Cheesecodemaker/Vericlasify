@@ -26,7 +26,7 @@
 
         <div class="info-box">
             <strong>What this does:</strong> Initializes a new Storage Unit in the current directory.
-            Creates a <code>.pinesu.json</code> file and computes merkle root from all tracked files.
+            Creates a <code>.vericl.json</code> file and computes merkle root from all tracked files.
         </div>
 
         <div class="form-panel">
@@ -99,33 +99,39 @@
             setButtonLoading(btn, true);
             setStatus('Creating...', 'warning');
 
-            log('Sending create request to server...', 'info');
+            try {
+                log('Sending create request to server...', 'info');
 
-            const result = await apiCall('/create', 'POST', {
-                targetPath,
-                name,
-                remote,
-                description,
-                ethHost
-            });
+                const result = await apiCall('/create', 'POST', {
+                    targetPath,
+                    name,
+                    remote,
+                    description,
+                    ethHost
+                });
 
-            if (result.success) {
-                log('✔ Storage Unit created successfully!', 'success');
-                log('');
-                log('📊 Storage Unit Details:', 'info');
-                log(`   Name: ${result.data.name}`);
-                log(`   UUID: ${result.data.uuid}`);
-                log(`   Files: ${result.data.files}`);
-                log(`   Merkle: ${result.data.merkleroot.substring(0, 20)}...`);
-                log('');
-                log('Next: Use "Stage" to prepare for blockchain sync', 'info');
-                setStatus('Created', 'success');
-            } else {
-                log(`✖ ${result.error}`, 'error');
-                setStatus('Failed', 'error');
+                if (result.success) {
+                    log('✔ Storage Unit created successfully!', 'success');
+                    log('');
+                    log('📊 Storage Unit Details:', 'info');
+                    log(`   Name: ${result.data.name}`);
+                    log(`   UUID: ${result.data.uuid}`);
+                    log(`   Files: ${result.data.files}`);
+                    const merkle = result.data.merkleroot || 'N/A';
+                    log(`   Merkle: ${merkle.substring ? merkle.substring(0, 20) + '...' : merkle}`);
+                    log('');
+                    log('Next: Use "Stage" to prepare for blockchain sync', 'info');
+                    setStatus('Created', 'success');
+                } else {
+                    log(`✖ ${result.error}`, 'error');
+                    setStatus('Failed', 'error');
+                }
+            } catch (err) {
+                log(`✖ Error: ${err.message}`, 'error');
+                setStatus('Error', 'error');
+            } finally {
+                setButtonLoading(btn, false, 'Create Storage Unit');
             }
-
-            setButtonLoading(btn, false, 'Create Storage Unit');
         }
     </script>
 </body>

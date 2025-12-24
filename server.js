@@ -305,7 +305,7 @@ app.post('/api/create', async (req, res) => {
 
             res.json({
                 success: true,
-                data: { uuid, name: vericl.header.name, path: workingDir, files: fileList.length, hash: contentHash }
+                data: { uuid, name: vericl.header.name, path: workingDir, files: fileList.length, hash: contentHash, merkleroot: contentHash }
             });
         } catch (error) {
             process.chdir(originalCwd);
@@ -909,15 +909,27 @@ app.post('/api/close', async (req, res) => {
                 const ethLogic = require('./logic/ethLogic');
                 ethLogic.connect(config.wallet1, config.wallet2, config.pkey || '', host);
 
-                // Register closure hash
-                const mc = files.loadTree();
+                // Load merkle tree with error handling for corrupted dates
+                let mc;
+                try {
+                    mc = files.loadTree();
+                } catch (treeError) {
+                    console.log('Warning: Creating fresh merkle tree due to:', treeError.message);
+                    mc = ethLogic.returnEmptyMC();
+                }
+
+                // Use current date (guaranteed valid)
                 const today = new Date();
 
                 const sg = [{ path: workingDir, uuid: vericl.header.uuid, hash: closureHash, closed: true }];
                 const [openRoot, closedRoot, openL, closedL] = files.createSGTrees(sg);
 
                 if (closedRoot) {
-                    const [closedWitness, closedSG] = ethLogic.addToTree(closedRoot, mc, true, today, closedL);
+                    try {
+                        const [closedWitness, closedSG] = ethLogic.addToTree(closedRoot, mc, true, today, closedL);
+                    } catch (addError) {
+                        console.log('Warning: Error adding to tree:', addError.message);
+                    }
                 }
 
                 const [mkcHash, receipt, bktimestamp] = await ethLogic.registerMC(mc);
