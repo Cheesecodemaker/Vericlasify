@@ -1437,3 +1437,341 @@ header {
   background: var(--border);
   border-radius: 3px;
 }
+
+/* =============================================================================
+   WALLET SETTINGS
+   ============================================================================= */
+
+.wallet-settings {
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.wallet-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wallet-btn:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.2));
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-1px);
+}
+
+.wallet-icon {
+  font-size: 1.1rem;
+}
+
+.wallet-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  margin-left: 0.25rem;
+}
+
+.wallet-status.connected {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.wallet-status.disconnected {
+  background: var(--error);
+}
+
+.wallet-dropdown {
+  display: none;
+  margin-top: 0.75rem;
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 450px;
+  animation: slideDown 0.2s ease;
+}
+
+.wallet-dropdown.open {
+  display: block;
+}
+
+.wallet-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.wallet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.wallet-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.wallet-field label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.wallet-field input {
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.wallet-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.wallet-field code {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.wallet-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.wallet-save-btn {
+  padding: 0.65rem 1rem;
+  background: var(--gradient-1);
+  border: none;
+  border-radius: 0.375rem;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.wallet-save-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.wallet-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wallet-message {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.wallet-message.success {
+  color: var(--success);
+}
+
+.wallet-message.error {
+  color: var(--error);
+}
+
+/* =============================================================================
+   TRANSACTION LOG
+   ============================================================================= */
+
+.transaction-log-section {
+  margin-top: 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.tx-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.05));
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tx-log-header:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+}
+
+.tx-log-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.tx-log-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tx-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  padding: 0.25rem 0.6rem;
+  border-radius: 1rem;
+}
+
+.tx-clear-btn {
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tx-clear-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.tx-toggle {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.tx-log-header.collapsed .tx-toggle {
+  transform: rotate(-90deg);
+}
+
+.tx-log-body {
+  max-height: 300px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+}
+
+.tx-log-body.collapsed {
+  max-height: 0;
+  overflow: hidden;
+}
+
+.tx-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.tx-entries {
+  padding: 0.5rem;
+}
+
+.tx-entry {
+  padding: 0.75rem 1rem;
+  margin: 0.25rem 0;
+  background: var(--bg-primary);
+  border-radius: 0.375rem;
+  border-left: 3px solid var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.tx-entry.success {
+  border-left-color: var(--success);
+}
+
+.tx-entry.error {
+  border-left-color: var(--error);
+}
+
+.tx-entry.pending {
+  border-left-color: var(--warning);
+}
+
+.tx-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.tx-entry-type {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tx-entry-time {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.tx-entry-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tx-detail-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tx-detail-label {
+  color: var(--text-muted);
+  min-width: 50px;
+}
+
+.tx-detail-value {
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.tx-address {
+  color: var(--success);
+}
+
+/* Scrollbar for tx log */
+.tx-log-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tx-log-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tx-log-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}

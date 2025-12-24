@@ -109,7 +109,7 @@
                         <div class="stage-indicator"></div>
                         <div class="stage-content">
                             <div class="stage-header">
-                                <span class="stage-name">Extract Text</span>
+                                <span class="stage-name">Extracting Text</span>
                                 <span class="stage-percent" id="extractPercent">0%</span>
                             </div>
                             <div class="stage-progress-bar">
@@ -122,7 +122,7 @@
                         <div class="stage-indicator"></div>
                         <div class="stage-content">
                             <div class="stage-header">
-                                <span class="stage-name">Generate Labels</span>
+                                <span class="stage-name">Generating Labels</span>
                                 <span class="stage-percent" id="labelsPercent">0%</span>
                             </div>
                             <div class="stage-progress-bar">
@@ -135,7 +135,7 @@
                         <div class="stage-indicator"></div>
                         <div class="stage-content">
                             <div class="stage-header">
-                                <span class="stage-name">Classify Document</span>
+                                <span class="stage-name">Classifying Document</span>
                                 <span class="stage-percent" id="classifyPercent">0%</span>
                             </div>
                             <div class="stage-progress-bar">
@@ -308,6 +308,24 @@
                         </div>
                         <span class="arrow">→</span>
                     </a>
+                </div>
+            </section>
+
+            <!-- Transaction Log -->
+            <section class="transaction-log-section">
+                <div class="tx-log-header" id="txLogHeader">
+                    <h3>📜 Transaction Log</h3>
+                    <div class="tx-log-controls">
+                        <span class="tx-count" id="txCount">0 transactions</span>
+                        <button class="tx-clear-btn" id="clearTxLog">Clear</button>
+                        <span class="tx-toggle" id="txToggle">▼</span>
+                    </div>
+                </div>
+                <div class="tx-log-body" id="txLogBody">
+                    <div class="tx-empty" id="txEmpty">
+                        <span>No transactions yet. Run a sync operation to see logs here.</span>
+                    </div>
+                    <div class="tx-entries" id="txEntries"></div>
                 </div>
             </section>
         </div>
@@ -719,7 +737,7 @@
         // Load token status
         async function loadTokenStatus() {
             try {
-                const response = await fetch('http://localhost:5050/api/token');
+                const response = await fetch('http://localhost:5050/api/token/status');
                 const data = await response.json();
 
                 if (data.configured) {
@@ -749,7 +767,7 @@
             saveTokenBtn.disabled = true;
 
             try {
-                const response = await fetch('http://localhost:5050/api/token', {
+                const response = await fetch('http://localhost:5050/api/token/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })
@@ -758,11 +776,10 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    maskedToken.textContent = data.masked;
-                    tokenStatusDot.classList.add('configured');
-                    tokenStatusDot.classList.remove('not-configured');
                     newTokenInput.value = '';
                     showTokenMessage('✓ Token saved', 'success');
+                    // Reload token status to show updated masked token
+                    loadTokenStatus();
                 } else {
                     showTokenMessage(data.error || 'Failed to save', 'error');
                 }
@@ -822,6 +839,138 @@
                 logModal.classList.remove('open');
             }
         });
+
+        // =============================================================================
+        // TRANSACTION LOG (with localStorage persistence)
+        // =============================================================================
+
+        const txLogHeader = document.getElementById('txLogHeader');
+        const txLogBody = document.getElementById('txLogBody');
+        const txEntries = document.getElementById('txEntries');
+        const txEmpty = document.getElementById('txEmpty');
+        const txCount = document.getElementById('txCount');
+        const clearTxLog = document.getElementById('clearTxLog');
+        const txToggle = document.getElementById('txToggle');
+
+        const TX_STORAGE_KEY = 'vericlasify_tx_log';
+
+        // Load transactions from localStorage
+        function loadTransactions() {
+            try {
+                const stored = localStorage.getItem(TX_STORAGE_KEY);
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // Save transactions to localStorage
+        function saveTransactions(txList) {
+            try {
+                // Keep only last 50 transactions
+                const toSave = txList.slice(0, 50);
+                localStorage.setItem(TX_STORAGE_KEY, JSON.stringify(toSave));
+            } catch (e) {
+                console.warn('Could not save transactions:', e);
+            }
+        }
+
+        // Render a single transaction entry
+        function renderTxEntry(tx) {
+            const entry = document.createElement('div');
+            entry.className = `tx-entry ${tx.status || ''}`;
+
+            let detailsHtml = '';
+            if (tx.details) {
+                for (const [key, value] of Object.entries(tx.details)) {
+                    const valueClass = key.toLowerCase().includes('address') || key === 'From' || key === 'To'
+                        ? 'tx-address' : 'tx-detail-value';
+                    detailsHtml += `
+                        <div class="tx-detail-row">
+                            <span class="tx-detail-label">${key}:</span>
+                            <span class="${valueClass}">${value}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            entry.innerHTML = `
+                <div class="tx-entry-header">
+                    <span class="tx-entry-type">${tx.type || 'Transaction'}</span>
+                    <span class="tx-entry-time">${tx.time || ''}</span>
+                </div>
+                <div class="tx-entry-details">
+                    ${detailsHtml}
+                </div>
+            `;
+
+            return entry;
+        }
+
+        // Render all transactions
+        function renderAllTransactions() {
+            const txList = loadTransactions();
+            txEntries.innerHTML = '';
+
+            if (txList.length === 0) {
+                txEmpty.style.display = 'block';
+                txCount.textContent = '0 transactions';
+            } else {
+                txEmpty.style.display = 'none';
+                txCount.textContent = `${txList.length} transaction${txList.length > 1 ? 's' : ''}`;
+
+                txList.forEach(tx => {
+                    txEntries.appendChild(renderTxEntry(tx));
+                });
+            }
+        }
+
+        // Add a new transaction entry
+        function addTxEntry(tx) {
+            const txList = loadTransactions();
+
+            // Add timestamp if not present
+            if (!tx.time) {
+                tx.time = new Date().toLocaleTimeString();
+            }
+
+            // Add to beginning of list
+            txList.unshift(tx);
+
+            // Save to localStorage
+            saveTransactions(txList);
+
+            // Re-render
+            renderAllTransactions();
+        }
+
+        // Toggle log visibility
+        txLogHeader.addEventListener('click', (e) => {
+            if (e.target.id === 'clearTxLog') return;
+            txLogHeader.classList.toggle('collapsed');
+            txLogBody.classList.toggle('collapsed');
+        });
+
+        // Clear transaction log
+        clearTxLog.addEventListener('click', (e) => {
+            e.stopPropagation();
+            localStorage.removeItem(TX_STORAGE_KEY);
+            renderAllTransactions();
+        });
+
+        // Expose addTxEntry globally for other pages to use
+        window.addTxEntry = addTxEntry;
+
+        // Listen for storage events (when other pages add transactions)
+        window.addEventListener('storage', (event) => {
+            if (event.key === TX_STORAGE_KEY) {
+                renderAllTransactions();
+            }
+        });
+
+        // Initial render
+        renderAllTransactions();
+
     </script>
 </body>
 

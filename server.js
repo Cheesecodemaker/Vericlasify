@@ -79,6 +79,83 @@ app.get('/api/status', (req, res) => {
     res.json({ success: true, serverDir: SERVER_DIR, version: '1.0.0' });
 });
 
+// Wallet connection endpoint
+app.post('/api/wallet/connect', async (req, res) => {
+    try {
+        const { rpcUrl, privateKey } = req.body;
+
+        if (!rpcUrl || rpcUrl.trim() === '') {
+            return res.json({ success: false, error: 'RPC URL is required' });
+        }
+
+        const config = readConfig() || {};
+
+        // Try to connect to the Ethereum node
+        try {
+            const Web3 = require('web3');
+            const web3 = new Web3(rpcUrl.trim());
+
+            const accounts = await web3.eth.getAccounts();
+
+            if (accounts.length === 0) {
+                return res.json({ success: false, error: 'No accounts found on this node' });
+            }
+
+            // Save RPC URL to config
+            config.ethHost = rpcUrl.trim();
+            config.wallet1 = accounts[0];
+
+            if (accounts.length > 1) {
+                config.wallet2 = accounts[1];
+            }
+
+            if (privateKey && privateKey.trim()) {
+                config.pkey = privateKey.trim();
+            }
+
+            writeConfig(config);
+
+            res.json({
+                success: true,
+                address: accounts[0],
+                accounts: accounts.slice(0, 3),
+                message: 'Connected successfully'
+            });
+        } catch (connError) {
+            return res.json({
+                success: false,
+                error: `Cannot connect to ${rpcUrl}: ${connError.message}`
+            });
+        }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Get wallet status
+app.get('/api/wallet/status', (req, res) => {
+    try {
+        const config = readConfig();
+        if (config && config.wallet1) {
+            res.json({
+                success: true,
+                connected: true,
+                address: config.wallet1,
+                rpcUrl: config.ethHost || 'http://127.0.0.1:8545'
+            });
+        } else {
+            res.json({
+                success: true,
+                connected: false,
+                address: null,
+                rpcUrl: null
+            });
+        }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
 // List files in a storage unit directory
 app.post('/api/listfiles', (req, res) => {
     try {
@@ -416,7 +493,13 @@ app.post('/api/sync', async (req, res) => {
 
             res.json({
                 success: true,
-                data: { txHash: receipt.transactionHash, blockNumber: receipt.blockNumber, unitssynced: openL.length }
+                data: {
+                    txHash: receipt.transactionHash,
+                    blockNumber: receipt.blockNumber,
+                    unitssynced: openL.length,
+                    fromAddress: config.wallet1,
+                    toAddress: config.wallet2
+                }
             });
         } catch (syncError) {
             return res.json({ success: false, error: `Sync failed: ${syncError.message}` });

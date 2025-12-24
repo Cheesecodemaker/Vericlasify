@@ -71,6 +71,21 @@
 
     <script src="shared.js"></script>
     <script>
+        // Save transaction to localStorage for dashboard display
+        function saveTransaction(tx) {
+            try {
+                const key = 'vericlasify_tx_log';
+                const stored = localStorage.getItem(key);
+                const txList = stored ? JSON.parse(stored) : [];
+                tx.time = new Date().toLocaleTimeString();
+                txList.unshift(tx);
+                // Keep only last 50
+                localStorage.setItem(key, JSON.stringify(txList.slice(0, 50)));
+            } catch (e) {
+                console.warn('Could not save transaction:', e);
+            }
+        }
+
         async function executeSync() {
             const btn = document.querySelector('.execute-btn');
             const targetPath = document.getElementById('targetPath').value;
@@ -86,6 +101,8 @@
             if (result.success) {
                 log('✔ Synced to blockchain!', 'success');
                 log('');
+                log(`Sending a transaction from ${result.data.fromAddress} to ${result.data.toAddress}`, 'info');
+                log('');
                 log('📊 Transaction Details:', 'info');
                 log(`   TX Hash: ${result.data.txHash}`);
                 log(`   Block: ${result.data.blockNumber}`);
@@ -93,9 +110,31 @@
                 log('');
                 log('Registration files created. Use "Check BC" to verify.', 'info');
                 setStatus('Synced', 'success');
+
+                // Save to transaction log for dashboard
+                saveTransaction({
+                    type: 'Blockchain Sync',
+                    status: 'success',
+                    details: {
+                        'From': result.data.fromAddress,
+                        'To': result.data.toAddress,
+                        'TX Hash': result.data.txHash,
+                        'Block': result.data.blockNumber,
+                        'Units': result.data.unitssynced
+                    }
+                });
             } else {
                 log(`✖ ${result.error}`, 'error');
                 setStatus('Failed', 'error');
+
+                // Save failed transaction too
+                saveTransaction({
+                    type: 'Blockchain Sync',
+                    status: 'error',
+                    details: {
+                        'Error': result.error
+                    }
+                });
             }
 
             setButtonLoading(btn, false, '⛓️ Sync to Blockchain');

@@ -6,3 +6,5 @@ merkles/storageGroup.json
 *.log
 .env
 .DS_Store
+uploads/
+results/
