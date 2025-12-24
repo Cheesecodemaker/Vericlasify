@@ -7,8 +7,11 @@ Combines Git with Ethereum blockchain for integrity protection.
 # Start blockchain (separate terminal)
 ganache-cli
 
-# Run Vericlasify
-node index.js
+# Run Blockchain + Ui
+npm run server
+
+# Run AI backend
+npm run ai
 ```
 
 ## Commands
@@ -26,13 +29,11 @@ node index.js
 
 ## Workflow
 
-1. Navigate to project directory
-2. Run: `node /path/to/Vericlasify/index.js`
-3. Select: create / update
-4. Select: stage
-5. Select: syncwbc
-6. Enter blockchain URL: http://localhost:7545 or http://127.0.0.1:8545 (CLI)
-7. Select: checkbc (to verify)
+1. Select: create / update
+2. Select: stage
+3. Select: syncwbc
+4. Enter blockchain URL: http://localhost:7545 or http://127.0.0.1:8545 (CLI)
+5. Select: checkbc (to verify)
 
 ## Security
 
