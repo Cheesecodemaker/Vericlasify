@@ -38,3 +38,90 @@ npm run ai
 ## Security
 
 ⚠️ Never commit `config.json` - contains private keys!
+
+---
+
+## Setup Guide
+
+This section provides all the necessary steps and dependencies to set up and run the Vericlasify project on a new machine after pulling from Git.
+
+### 1. System Requirements
+
+Before installing dependencies, ensure your system has the following:
+- **Node.js**: Version 14.0.0 or higher.
+- **Python**: Version 3.8 or higher.
+- **Git**: Installed and configured.
+- **Ganache**: Either `ganache-cli` (global npm package) or the Ganache GUI.
+
+### 2. Global Dependencies
+
+Install the essential global tools:
+
+```bash
+# Install Ganache CLI (if not using the GUI)
+npm install -g ganache-cli
+```
+
+### 3. Project Installation
+
+Clone the repository and install local dependencies:
+
+```bash
+# Clone the repository
+git clone <repository_url>
+cd Vericlasify(AI)
+
+# Install Node.js dependencies (Main Backend & CLI)
+npm install
+```
+
+> **Note:** `npm install` automatically runs `patch-package` to fix compatibility issues in the `merkle-calendar` library.
+
+### 4. AI API Setup (Python)
+
+The AI classification component requires several Python libraries. It is recommended to use a virtual environment.
+
+```bash
+# Optional: Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install required Python packages
+pip install flask flask-cors huggingface_hub pdfplumber python-docx python-dotenv werkzeug requests
+```
+
+#### Environment Configuration
+Create a `.env` file in the root directory and add your Hugging Face token:
+
+```env
+HF_TOKEN=your_huggingface_token_here
+```
+
+### 5. Execution Commands
+
+To run the full system, you need to start three separate components (ideally in different terminals):
+
+#### Terminal 1: Blockchain
+```bash
+# Start Ganache
+npm run ganache
+# or simply: ganache-cli
+```
+
+#### Terminal 2: Main Backend & Dashboard
+```bash
+# Start the Express server (Port 3001)
+npm run server
+```
+
+#### Terminal 3: AI Classification API
+```bash
+# Start the Python AI API (Port 5050)
+npm run ai
+```
+
+### 6. Verification
+Once all servers are running:
+- **Dashboard**: Open `http://localhost:3001` in your browser.
+- **AI Health Check**: Visit `http://localhost:5050/health`.
+- **Blockchain**: Ensure Ganache is listening on `http://127.0.0.1:8545`.
