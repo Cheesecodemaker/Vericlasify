@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encrypt/Decrypt - Vericlasify</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        .file-checkbox-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-checkbox-row:hover {
+            background: rgba(138, 99, 255, 0.1);
+            border-color: rgba(138, 99, 255, 0.3);
+        }
+
+        .file-checkbox-row.encrypted {
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .file-checkbox-row.encrypted:hover {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .file-checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .file-checkbox-row .file-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #fff;
+            flex: 1;
+        }
+
+        .file-checkbox-row .file-size {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-left: 1rem;
+        }
+
+        .file-checkbox-row .file-status {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .file-status.encrypted {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .file-status.decrypted {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .select-all-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .select-all-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .select-all-row label {
+            font-size: 0.85rem;
+            color: var(--accent);
+            cursor: pointer;
+        }
+
+        .load-btn {
+            background: rgba(138, 99, 255, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .load-btn:hover {
+            background: rgba(138, 99, 255, 0.3);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-buttons .execute-btn {
+            flex: 1;
+        }
+
+        .execute-btn.decrypt {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .execute-btn.decrypt:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .encryption-status {
+            display: flex;
+            gap: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 1rem;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-item .count {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .status-item.encrypted .count {
+            color: #10b981;
+        }
+
+        .status-item .label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        .password-input-group {
+            position: relative;
+        }
+
+        .password-input-group input {
+            padding-right: 3rem;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .password-toggle:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="page-title">
+                <span>🔐</span>
+                <h1>Encrypt/Decrypt</h1>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>What this does:</strong> Protect your storage unit files with AES-256-GCM encryption.
+            Files can be encrypted individually or in bulk. Password required for both encrypt and decrypt operations.
+        </div>
+
+        <div class="form-panel">
+            <div class="form-group">
+                <label for="targetPath">Storage Unit Path</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="targetPath" placeholder="C:\path\to\storage\unit" style="flex: 1;">
+                    <button class="load-btn" onclick="loadFiles()">📂 Load Files</button>
+                </div>
+                <p class="form-hint">Enter the path to a storage unit directory</p>
+            </div>
+
+            <div id="statusContainer" style="display: none;">
+                <div class="encryption-status">
+                    <div class="status-item encrypted">
+                        <div class="count" id="encryptedCount">0</div>
+                        <div class="label">Encrypted</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="count" id="decryptedCount">0</div>
+                        <div class="label">Decrypted</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="count" id="totalCount">0</div>
+                        <div class="label">Total Files</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" id="passwordContainer" style="display: none;">
+                <label for="password">Encryption Password</label>
+                <div class="password-input-group">
+                    <input type="password" id="password" placeholder="Enter your password">
+                    <button class="password-toggle" onclick="togglePassword()">👁️</button>
+                </div>
+                <p class="form-hint">Password is required for encrypt/decrypt operations. Remember it - there's no
+                    recovery!</p>
+            </div>
+
+            <div class="form-group" id="fileListContainer" style="display: none;">
+                <label>Select Files</label>
+                <div class="select-all-row">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                    <label for="selectAll">Select All</label>
+                </div>
+                <div id="fileList" style="max-height: 250px; overflow-y: auto;"></div>
+            </div>
+
+            <div class="action-buttons" id="actionButtons" style="display: none;">
+                <button class="execute-btn" onclick="encryptFiles()" id="encryptBtn">
+                    🔒 Encrypt Selected
+                </button>
+                <button class="execute-btn decrypt" onclick="decryptFiles()" id="decryptBtn">
+                    🔓 Decrypt Selected
+                </button>
+            </div>
+        </div>
+
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dots">
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                    <span class="console-dot"></span>
+                </div>
+                <span class="console-title">output</span>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console-body" id="consoleBody"></div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Ready</span>
+        </div>
+        <span class="status-version">v1.0.0</span>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        let loadedFiles = { encrypted: [], decrypted: [] };
+        let currentPath = '';
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const btn = document.querySelector('.password-toggle');
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        async function loadFiles() {
+            const targetPath = document.getElementById('targetPath').value;
+            if (!targetPath) {
+                log('✖ Please enter a storage unit path', 'error');
+                return;
+            }
+
+            log('Loading files from storage unit...', 'info');
+            setStatus('Loading...', 'warning');
+
+            const result = await apiCall('/encryption/status', 'POST', { targetPath });
+
+            if (result.success) {
+                loadedFiles.encrypted = result.data.encrypted || [];
+                loadedFiles.decrypted = result.data.decrypted || [];
+                currentPath = targetPath;
+
+                // Update status counts
+                document.getElementById('encryptedCount').textContent = loadedFiles.encrypted.length;
+                document.getElementById('decryptedCount').textContent = loadedFiles.decrypted.length;
+                document.getElementById('totalCount').textContent = result.data.total;
+
+                // Show containers
+                document.getElementById('statusContainer').style.display = 'block';
+                document.getElementById('passwordContainer').style.display = 'block';
+                document.getElementById('fileListContainer').style.display = 'block';
+                document.getElementById('actionButtons').style.display = 'flex';
+                document.getElementById('selectAll').checked = false;
+
+                // Build file list
+                const fileList = document.getElementById('fileList');
+                const allFiles = [
+                    ...loadedFiles.decrypted.map(f => ({ path: f, encrypted: false })),
+                    ...loadedFiles.encrypted.map(f => ({ path: f, encrypted: true }))
+                ].sort((a, b) => a.path.localeCompare(b.path));
+
+                fileList.innerHTML = allFiles.map((f, i) => `
+                    <label class="file-checkbox-row ${f.encrypted ? 'encrypted' : ''}">
+                        <input type="checkbox" name="selectFile" value="${f.path}" data-encrypted="${f.encrypted}">
+                        <span class="file-name">${f.path}</span>
+                        <span class="file-status ${f.encrypted ? 'encrypted' : 'decrypted'}">
+                            ${f.encrypted ? '🔒 Encrypted' : '📄 Plain'}
+                        </span>
+                    </label>
+                `).join('');
+
+                if (result.data.configured) {
+                    log(`✔ Encryption is configured for this storage unit`, 'success');
+                } else {
+                    log(`ℹ Encryption not yet configured. It will be set up on first encrypt.`, 'info');
+                }
+
+                log(`✔ Found ${loadedFiles.encrypted.length} encrypted, ${loadedFiles.decrypted.length} decrypted files`, 'success');
+                setStatus('Files Loaded', 'success');
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            document.querySelectorAll('input[name="selectFile"]').forEach(cb => {
+                cb.checked = selectAll;
+            });
+        }
+
+        async function encryptFiles() {
+            const password = document.getElementById('password').value;
+            if (!password) {
+                log('✖ Please enter a password', 'error');
+                return;
+            }
+
+            const checked = document.querySelectorAll('input[name="selectFile"]:checked');
+            // Filter only non-encrypted files
+            const files = Array.from(checked)
+                .filter(c => c.dataset.encrypted === 'false')
+                .map(c => c.value);
+
+            if (files.length === 0) {
+                log('✖ No decrypted files selected (encrypted files cannot be re-encrypted)', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('encryptBtn');
+            setButtonLoading(btn, true);
+            setStatus('Encrypting...', 'warning');
+
+            log(`Encrypting ${files.length} file(s)...`, 'info');
+
+            const result = await apiCall('/encrypt', 'POST', {
+                targetPath: currentPath,
+                password: password,
+                files: files
+            });
+
+            if (result.success) {
+                log('');
+                log('═══════════════════════════════════════', 'success');
+                log('   🔒 ENCRYPTION COMPLETE!', 'success');
+                log('═══════════════════════════════════════', 'success');
+                log('');
+                log(`✔ ${result.data.message}`, 'success');
+                if (result.data.failed > 0) {
+                    log(`⚠ ${result.data.failed} file(s) failed`, 'warning');
+                }
+                setStatus('Encrypted', 'success');
+
+                // Reload file list
+                await loadFiles();
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '🔒 Encrypt Selected');
+        }
+
+        async function decryptFiles() {
+            const password = document.getElementById('password').value;
+            if (!password) {
+                log('✖ Please enter a password', 'error');
+                return;
+            }
+
+            const checked = document.querySelectorAll('input[name="selectFile"]:checked');
+            // Filter only encrypted files
+            const files = Array.from(checked)
+                .filter(c => c.dataset.encrypted === 'true')
+                .map(c => c.value);
+
+            if (files.length === 0) {
+                log('✖ No encrypted files selected (plain files cannot be decrypted)', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('decryptBtn');
+            setButtonLoading(btn, true);
+            setStatus('Decrypting...', 'warning');
+
+            log(`Decrypting ${files.length} file(s)...`, 'info');
+
+            const result = await apiCall('/decrypt', 'POST', {
+                targetPath: currentPath,
+                password: password,
+                files: files
+            });
+
+            if (result.success) {
+                log('');
+                log('═══════════════════════════════════════', 'success');
+                log('   🔓 DECRYPTION COMPLETE!', 'success');
+                log('═══════════════════════════════════════', 'success');
+                log('');
+                log(`✔ ${result.data.message}`, 'success');
+                if (result.data.failed > 0) {
+                    log(`⚠ ${result.data.failed} file(s) failed`, 'warning');
+                }
+                log('');
+                log('ℹ Files are now editable. Remember to encrypt again when done.', 'info');
+                setStatus('Decrypted', 'success');
+
+                // Reload file list
+                await loadFiles();
+            } else {
+                log(`✖ ${result.error}`, 'error');
+                setStatus('Failed', 'error');
+            }
+
+            setButtonLoading(btn, false, '🔓 Decrypt Selected');
+        }
+    </script>
+</body>
+
+</html>

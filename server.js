@@ -10,6 +10,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const files = require('./lib/files');
 const treelist = require('./lib/treelist');
+const encryption = require('./lib/encryption');
 
 const app = express();
 const PORT = 3001;
@@ -1240,6 +1241,217 @@ app.post('/api/revert-all', async (req, res) => {
         } catch (gitError) {
             res.json({ success: false, error: gitError.message || 'Git revert failed' });
         }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================================================
+// ENCRYPTION ENDPOINTS
+// ===========================================================================
+
+// Get encryption status
+app.post('/api/encryption/status', (req, res) => {
+    try {
+        const { targetPath } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        const status = encryption.getEncryptionStatus(workingDir);
+        const config = encryption.getEncryptionConfig(workingDir);
+
+        res.json({
+            success: true,
+            data: {
+                configured: !!config,
+                ...status
+            }
+        });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Setup encryption (first time - creates key)
+app.post('/api/encryption/setup', (req, res) => {
+    try {
+        const { targetPath, password } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        if (!password || password.trim() === '') {
+            return res.json({ success: false, error: 'Password is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        // Check if encryption is already configured
+        const existingConfig = encryption.getEncryptionConfig(workingDir);
+        if (existingConfig) {
+            return res.json({ success: false, error: 'Encryption already configured for this storage unit.' });
+        }
+
+        // Generate new AES key and encrypt it with password
+        const aesKey = encryption.generateRandomKey();
+        const { encryptedKey, salt } = encryption.encryptKeyWithPassword(aesKey, password.trim());
+
+        // Save encrypted key to storage unit
+        encryption.saveEncryptionConfig(workingDir, { encryptedKey, salt });
+
+        res.json({
+            success: true,
+            data: {
+                message: 'Encryption configured successfully. You can now encrypt files.'
+            }
+        });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Encrypt files
+app.post('/api/encrypt', (req, res) => {
+    try {
+        const { targetPath, password, files: selectedFiles } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        if (!password || password.trim() === '') {
+            return res.json({ success: false, error: 'Password is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        // Get encryption config
+        let config = encryption.getEncryptionConfig(workingDir);
+
+        // If not configured, set up encryption first
+        if (!config) {
+            const aesKey = encryption.generateRandomKey();
+            const keyData = encryption.encryptKeyWithPassword(aesKey, password.trim());
+            encryption.saveEncryptionConfig(workingDir, keyData);
+            config = keyData;
+        }
+
+        // Decrypt the AES key using password
+        const aesKey = encryption.decryptKeyWithPassword(config.encryptedKey, config.salt, password.trim());
+
+        if (!aesKey) {
+            return res.json({ success: false, error: 'Invalid password.' });
+        }
+
+        // Get files to encrypt
+        let filesToEncrypt;
+        if (selectedFiles && selectedFiles.length > 0) {
+            filesToEncrypt = selectedFiles.map(f => path.join(workingDir, f));
+        } else {
+            filesToEncrypt = encryption.getAllFiles(workingDir);
+        }
+
+        // Filter out already encrypted files
+        filesToEncrypt = filesToEncrypt.filter(f => !f.endsWith(encryption.ENCRYPTED_EXT));
+
+        if (filesToEncrypt.length === 0) {
+            return res.json({ success: false, error: 'No files to encrypt (all files may already be encrypted).' });
+        }
+
+        // Encrypt files
+        const results = encryption.encryptFiles(filesToEncrypt, aesKey);
+
+        res.json({
+            success: true,
+            data: {
+                encrypted: results.success.length,
+                failed: results.failed.length,
+                failedFiles: results.failed,
+                message: `Successfully encrypted ${results.success.length} file(s).`
+            }
+        });
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Decrypt files
+app.post('/api/decrypt', (req, res) => {
+    try {
+        const { targetPath, password, files: selectedFiles } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        if (!password || password.trim() === '') {
+            return res.json({ success: false, error: 'Password is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        // Get encryption config
+        const config = encryption.getEncryptionConfig(workingDir);
+
+        if (!config) {
+            return res.json({ success: false, error: 'Encryption not configured for this storage unit.' });
+        }
+
+        // Decrypt the AES key using password
+        const aesKey = encryption.decryptKeyWithPassword(config.encryptedKey, config.salt, password.trim());
+
+        if (!aesKey) {
+            return res.json({ success: false, error: 'Invalid password.' });
+        }
+
+        // Get files to decrypt
+        let filesToDecrypt;
+        if (selectedFiles && selectedFiles.length > 0) {
+            filesToDecrypt = selectedFiles.map(f => path.join(workingDir, f));
+        } else {
+            filesToDecrypt = encryption.getAllFiles(workingDir);
+        }
+
+        // Filter to only encrypted files
+        filesToDecrypt = filesToDecrypt.filter(f => f.endsWith(encryption.ENCRYPTED_EXT));
+
+        if (filesToDecrypt.length === 0) {
+            return res.json({ success: false, error: 'No encrypted files found.' });
+        }
+
+        // Decrypt files
+        const results = encryption.decryptFiles(filesToDecrypt, aesKey);
+
+        res.json({
+            success: true,
+            data: {
+                decrypted: results.success.length,
+                failed: results.failed.length,
+                failedFiles: results.failed,
+                message: `Successfully decrypted ${results.success.length} file(s).`
+            }
+        });
     } catch (error) {
         res.json({ success: false, error: error.message });
     }
