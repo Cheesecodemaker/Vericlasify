@@ -237,7 +237,7 @@ app.post('/api/listfiles', (req, res) => {
 // Create storage unit - requires targetPath
 app.post('/api/create', async (req, res) => {
     try {
-        const { targetPath, name, description } = req.body;
+        const { targetPath, name, description, remote } = req.body;
 
         if (!targetPath || targetPath.trim() === '') {
             return res.json({ success: false, error: 'Directory path is required.' });
@@ -285,6 +285,7 @@ app.post('/api/create', async (req, res) => {
                 header: {
                     uuid, name: name || 'Storage Unit',
                     description: description || '',
+                    remote: remote || 'localhost',
                     created: now, mdtime: now,
                     crtime: now
                 },
@@ -301,16 +302,66 @@ app.post('/api/create', async (req, res) => {
                 fs.writeFileSync('.gitignore', `node_modules\n${files.VERICL_FILE}\n${files.REG_VERICL_FILE}\n${files.VERICL_HISTORY}\n`);
             }
 
+            // Set git remote origin if provided (and not localhost)
+            if (remote && remote.trim() !== '' && remote.toLowerCase() !== 'localhost') {
+                try {
+                    const simpleGit = require('simple-git');
+                    const git = simpleGit(workingDir);
+                    // Check if remote already exists
+                    const remotes = await git.getRemotes();
+                    const hasOrigin = remotes.some(r => r.name === 'origin');
+                    if (!hasOrigin) {
+                        await git.addRemote('origin', remote.trim());
+                    }
+                } catch (e) { /* Ignore remote setup errors */ }
+            }
+
             process.chdir(originalCwd);
 
             res.json({
                 success: true,
-                data: { uuid, name: vericl.header.name, path: workingDir, files: fileList.length, hash: contentHash }
+                data: { uuid, name: vericl.header.name, path: workingDir, files: fileList.length, merkleroot: contentHash }
             });
         } catch (error) {
             process.chdir(originalCwd);
             throw error;
         }
+    } catch (error) {
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Get remote URL from .vericl.json (fallback when git remote isn't configured)
+app.post('/api/get-remote', async (req, res) => {
+    try {
+        const { targetPath } = req.body;
+
+        if (!targetPath || targetPath.trim() === '') {
+            return res.json({ success: false, error: 'Directory path is required.' });
+        }
+
+        const workingDir = targetPath.trim();
+
+        if (!fs.existsSync(workingDir)) {
+            return res.json({ success: false, error: `Directory not found: ${workingDir}` });
+        }
+
+        // Check for .vericl.json or legacy .pinesu.json
+        let vericlPath = path.join(workingDir, files.VERICL_FILE);
+        if (!fs.existsSync(vericlPath)) {
+            vericlPath = path.join(workingDir, '.pinesu.json');
+        }
+        if (!fs.existsSync(vericlPath)) {
+            return res.json({ success: false, error: 'No storage unit found.' });
+        }
+
+        const vericl = JSON.parse(fs.readFileSync(vericlPath, 'utf8'));
+        const remote = vericl.header?.remote || null;
+
+        res.json({
+            success: true,
+            remote: remote && remote !== 'localhost' ? remote : null
+        });
     } catch (error) {
         res.json({ success: false, error: error.message });
     }

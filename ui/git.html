@@ -32,7 +32,8 @@
         <div class="form-panel">
             <div class="form-group">
                 <label for="targetPath">Directory Path</label>
-                <input type="text" id="targetPath" placeholder="C:\path\to\your\storage\unit">
+                <input type="text" id="targetPath" placeholder="C:\path\to\your\storage\unit"
+                    onchange="fetchExistingRemote()">
                 <p class="form-hint">Path to the storage unit directory (with .pinesu.json)</p>
             </div>
 
@@ -48,8 +49,39 @@
                 <button class="quick-cmd" onclick="runQuickCmd('log -5 --oneline')">log</button>
                 <button class="quick-cmd" onclick="runQuickCmd('branch -a')">branches</button>
                 <button class="quick-cmd" onclick="runQuickCmd('diff --stat')">diff</button>
-                <!-- <button class="quick-cmd" onclick="runQuickCmd('remote -v')">remotes</button>-->
+                <button class="quick-cmd" onclick="runQuickCmd('remote -v')">remotes</button>
+            </div>
 
+            <!-- Remote Management Section -->
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="remoteUrl">Remote URL</label>
+                <input type="text" id="remoteUrl" placeholder="https://github.com/username/repo.git">
+                <p class="form-hint">GitHub/GitLab repository URL for push/pull</p>
+            </div>
+
+            <!-- Commit Section -->
+            <div class="form-group">
+                <label for="commitMessage">Commit Message</label>
+                <input type="text" id="commitMessage" placeholder="Enter your commit message..."
+                    onkeypress="if(event.key==='Enter') gitCommit()">
+                <p class="form-hint">Message describing your changes (required for commit)</p>
+            </div>
+
+            <!-- Branch Section -->
+            <div class="form-group">
+                <label for="branchName">Branch Name</label>
+                <input type="text" id="branchName" placeholder="feature/my-new-feature"
+                    onkeypress="if(event.key==='Enter') createBranch()">
+                <p class="form-hint">Name for new branch (e.g., feature/login, bugfix/header)</p>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                <button class="action-cmd init" onclick="gitInit()">🚀 Init</button>
+                <button class="action-cmd commit" onclick="gitCommit()">💾 Commit</button>
+                <button class="action-cmd push" onclick="gitPush()">🔼 Push</button>
+                <button class="action-cmd pull" onclick="gitPull()">🔽 Pull</button>
+                <button class="action-cmd branch" onclick="createBranch()">🌿 New Branch</button>
+                <button class="action-cmd remote" onclick="setRemote()">🔗 Set Remote</button>
             </div>
 
             <button class="execute-btn" onclick="executeGit()">
@@ -97,6 +129,103 @@
             border-color: var(--accent);
             color: var(--accent);
         }
+
+        .action-cmd {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .action-cmd.push {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-color: #059669;
+        }
+
+        .action-cmd.push:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .action-cmd.pull {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .action-cmd.pull:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .action-cmd.remote {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border-color: #7c3aed;
+        }
+
+        .action-cmd.remote:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .action-cmd.reset {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border-color: #d97706;
+        }
+
+        .action-cmd.reset:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .action-cmd.commit {
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+            color: white;
+            border-color: #0d9488;
+        }
+
+        .action-cmd.commit:hover {
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+        }
+
+        .action-cmd.init {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            color: white;
+            border-color: #db2777;
+        }
+
+        .action-cmd.init:hover {
+            background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        }
+
+        .action-cmd.branch {
+            background: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
+            color: white;
+            border-color: #65a30d;
+        }
+
+        .action-cmd.branch:hover {
+            background: linear-gradient(135deg, #65a30d 0%, #4d7c0f 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(132, 204, 22, 0.3);
+        }
     </style>
 
     <script src="shared.js"></script>
@@ -105,6 +234,145 @@
             document.getElementById('gitCommand').value = cmd;
             executeGit();
         }
+
+        async function gitInit() {
+            const targetPath = document.getElementById('targetPath').value.trim();
+            const remoteUrl = document.getElementById('remoteUrl').value.trim();
+
+            if (!targetPath) {
+                log('✖ Please enter a directory path first', 'error');
+                return;
+            }
+
+            setStatus('Initializing...', 'warning');
+            log('🚀 Initializing Git repository...', 'info');
+
+            const result = await apiCall('/git', 'POST', { command: 'init', targetPath });
+
+            if (result.output && result.output.includes('fatal:')) {
+                log(`✖ Init failed: ${result.output}`, 'error');
+                setStatus('Init failed', 'error');
+                return;
+            }
+
+            log('✔ Git repository initialized!', 'success');
+
+            // If remote URL is provided, set it
+            if (remoteUrl) {
+                log(`🔗 Setting remote origin to: ${remoteUrl}`, 'info');
+                const remoteResult = await apiCall('/git', 'POST', {
+                    command: `remote add origin ${remoteUrl}`,
+                    targetPath
+                });
+
+                if (remoteResult.output && remoteResult.output.includes('already exists')) {
+                    log('ℹ Remote origin already configured', 'info');
+                } else if (remoteResult.output && !remoteResult.output.includes('fatal:')) {
+                    log('✔ Remote origin set!', 'success');
+                }
+            }
+
+            log('', 'info');
+            log('📝 Next steps:', 'info');
+            log('   1. Enter a commit message', 'info');
+            log('   2. Click "Commit"', 'info');
+            log('   3. Click "Push"', 'info');
+
+            setStatus('Initialized', 'success');
+        }
+
+        async function createBranch() {
+            const targetPath = document.getElementById('targetPath').value.trim();
+            const branchName = document.getElementById('branchName').value.trim();
+
+            if (!branchName) {
+                log('✖ Please enter a branch name', 'error');
+                setStatus('Name required', 'error');
+                return;
+            }
+
+            setStatus('Creating branch...', 'warning');
+            log(`🌿 Creating new branch: ${branchName}`, 'info');
+
+            // Create and switch to the new branch
+            const result = await apiCall('/git', 'POST', {
+                command: `checkout -b ${branchName}`,
+                targetPath
+            });
+
+            const hasError = result.output && (
+                result.output.includes('fatal:') ||
+                result.output.includes('error:')
+            );
+
+            if (result.success && !hasError) {
+                log(`✔ Branch "${branchName}" created and checked out!`, 'success');
+                if (result.output) log(result.output);
+                document.getElementById('branchName').value = ''; // Clear input
+                setStatus('Branch created', 'success');
+
+                // Show current branch
+                log('', 'info');
+                log(`📌 You are now on branch: ${branchName}`, 'info');
+            } else {
+                // Check if branch already exists
+                if (result.output && result.output.includes('already exists')) {
+                    log(`⚠ Branch "${branchName}" already exists. Switching to it...`, 'warning');
+
+                    // Try to switch to existing branch
+                    const switchResult = await apiCall('/git', 'POST', {
+                        command: `checkout ${branchName}`,
+                        targetPath
+                    });
+
+                    if (switchResult.success && !switchResult.output.includes('fatal:')) {
+                        log(`✔ Switched to branch "${branchName}"`, 'success');
+                        document.getElementById('branchName').value = '';
+                        setStatus('Switched', 'success');
+                    } else {
+                        log(`✖ Failed to switch: ${switchResult.output}`, 'error');
+                        setStatus('Switch failed', 'error');
+                    }
+                } else {
+                    log(`✖ Failed: ${result.output || result.error}`, 'error');
+                    setStatus('Failed', 'error');
+                }
+            }
+        }
+
+        async function fetchExistingRemote() {
+            const targetPath = document.getElementById('targetPath').value.trim();
+            if (!targetPath) return;
+
+            // Save to localStorage for persistence
+            localStorage.setItem('vericlasify_lastPath', targetPath);
+
+            // First try to get remote from git
+            const result = await apiCall('/git', 'POST', { command: 'remote get-url origin', targetPath });
+
+            if (result.success && result.output && result.output.trim() && !result.output.includes('fatal:')) {
+                const remoteUrl = result.output.trim();
+                document.getElementById('remoteUrl').value = remoteUrl;
+                log(`🔗 Found existing remote: ${remoteUrl}`, 'info');
+            } else {
+                // Fallback: Try to get remote from .vericl.json
+                const vericlResult = await apiCall('/get-remote', 'POST', { targetPath });
+                if (vericlResult.success && vericlResult.remote) {
+                    document.getElementById('remoteUrl').value = vericlResult.remote;
+                    log(`🔗 Found existing remote: ${vericlResult.remote}`, 'info');
+                } else {
+                    document.getElementById('remoteUrl').value = '';
+                    document.getElementById('remoteUrl').placeholder = 'No remote configured - enter URL here';
+                }
+            }
+        }
+
+        // Fetch remote after shared.js initializes the path
+        setTimeout(() => {
+            if (document.getElementById('targetPath').value) {
+                fetchExistingRemote();
+            }
+        }, 100);
 
         async function executeGit() {
             const btn = document.querySelector('.execute-btn');
@@ -136,6 +404,170 @@
             }
 
             setButtonLoading(btn, false, '📖 Run Command');
+        }
+
+        async function gitCommit() {
+            const targetPath = document.getElementById('targetPath').value.trim();
+            const commitMessage = document.getElementById('commitMessage').value.trim();
+
+            if (!commitMessage) {
+                log('✖ Please enter a commit message', 'error');
+                setStatus('Message required', 'error');
+                return;
+            }
+
+            setStatus('Committing...', 'warning');
+
+            // Stage all files first
+            log('📂 Staging all files...', 'info');
+            const addResult = await apiCall('/git', 'POST', { command: 'add .', targetPath });
+
+            if (addResult.output && addResult.output.includes('fatal:')) {
+                log(`✖ Staging failed: ${addResult.output}`, 'error');
+                setStatus('Stage failed', 'error');
+                return;
+            }
+            log('✔ Files staged', 'success');
+
+            // Commit with message
+            log(`💾 Committing with message: "${commitMessage}"`, 'info');
+            const commitResult = await apiCall('/git', 'POST', {
+                command: `commit -m "${commitMessage}"`,
+                targetPath
+            });
+
+            const hasError = commitResult.output && (
+                commitResult.output.includes('fatal:') ||
+                commitResult.output.includes('error:')
+            );
+
+            if (commitResult.success && !hasError) {
+                log('✔ Commit successful!', 'success');
+                if (commitResult.output) {
+                    commitResult.output.split('\n').forEach(line => {
+                        if (line.trim()) log(line);
+                    });
+                }
+                document.getElementById('commitMessage').value = ''; // Clear message
+                setStatus('Committed', 'success');
+            } else {
+                // Check for "nothing to commit" which isn't really an error
+                if (commitResult.output && commitResult.output.includes('nothing to commit')) {
+                    log('ℹ Nothing to commit - working tree clean', 'info');
+                    setStatus('Nothing to commit', 'warning');
+                } else {
+                    log(`✖ Commit failed: ${commitResult.output || commitResult.error}`, 'error');
+                    setStatus('Commit failed', 'error');
+                }
+            }
+        }
+
+        async function gitPush() {
+            const targetPath = document.getElementById('targetPath').value.trim();
+            setStatus('Pushing...', 'warning');
+            log('🔼 Pushing to remote...', 'info');
+
+            // First check if there are any commits
+            const logResult = await apiCall('/git', 'POST', { command: 'log --oneline -1', targetPath });
+            if (logResult.output && (logResult.output.includes('fatal:') || logResult.output.includes('does not have any commits'))) {
+                log('⚠ No commits found! You need to commit first:', 'warning');
+                log('   1. Run: add .', 'info');
+                log('   2. Run: commit -m "Initial commit"', 'info');
+                log('   3. Then click Push again', 'info');
+                setStatus('No commits', 'error');
+                return;
+            }
+
+            // Get current branch name
+            const branchResult = await apiCall('/git', 'POST', { command: 'rev-parse --abbrev-ref HEAD', targetPath });
+            const currentBranch = (branchResult.output && !branchResult.output.includes('fatal:'))
+                ? branchResult.output.trim()
+                : 'master';
+
+            log(`📌 Current branch: ${currentBranch}`, 'info');
+
+            const result = await apiCall('/git', 'POST', { command: `push -u origin ${currentBranch}`, targetPath });
+
+            // Check if output contains error indicators
+            const hasError = result.output && (
+                result.output.includes('error:') ||
+                result.output.includes('fatal:') ||
+                result.output.includes('failed to push')
+            );
+
+            if (result.success && !hasError) {
+                log('✔ Push successful!', 'success');
+                if (result.output) log(result.output);
+                setStatus('Push complete', 'success');
+            } else {
+                log(`✖ Push failed: ${result.output || result.error}`, 'error');
+                setStatus('Push failed', 'error');
+            }
+        }
+
+        async function gitPull() {
+            const targetPath = document.getElementById('targetPath').value.trim();
+            setStatus('Pulling...', 'warning');
+            log('🔽 Pulling from remote...', 'info');
+
+            const result = await apiCall('/git', 'POST', { command: 'pull origin main', targetPath });
+
+            if (result.success) {
+                log('✔ Pull successful!', 'success');
+                log(result.output);
+                setStatus('Pull complete', 'success');
+            } else {
+                // Try master branch if main fails
+                const retryResult = await apiCall('/git', 'POST', { command: 'pull origin master', targetPath });
+                if (retryResult.success) {
+                    log('✔ Pull successful (master branch)!', 'success');
+                    log(retryResult.output);
+                    setStatus('Pull complete', 'success');
+                } else {
+                    log(`✖ Pull failed: ${result.error}`, 'error');
+                    setStatus('Pull failed', 'error');
+                }
+            }
+        }
+
+        async function setRemote() {
+            const targetPath = document.getElementById('targetPath').value.trim();
+            const remoteUrl = document.getElementById('remoteUrl').value.trim();
+
+            if (!remoteUrl) {
+                log('✖ Please enter a remote URL', 'error');
+                return;
+            }
+
+            setStatus('Setting remote...', 'warning');
+            log(`🔗 Setting remote origin to: ${remoteUrl}`, 'info');
+
+            // First try to add remote
+            const result = await apiCall('/git', 'POST', { command: `remote add origin ${remoteUrl}`, targetPath });
+
+            // Check if remote already exists
+            if (result.output && result.output.includes('already exists')) {
+                // Update existing remote instead
+                log('ℹ Remote exists, updating URL...', 'info');
+                const updateResult = await apiCall('/git', 'POST', {
+                    command: `remote set-url origin ${remoteUrl}`,
+                    targetPath
+                });
+
+                if (updateResult.success && !updateResult.output.includes('fatal:')) {
+                    log('✔ Remote origin updated!', 'success');
+                    setStatus('Remote updated', 'success');
+                } else {
+                    log(`✖ Failed to update: ${updateResult.output || updateResult.error}`, 'error');
+                    setStatus('Failed', 'error');
+                }
+            } else if (result.output && result.output.includes('fatal:')) {
+                log(`✖ Failed: ${result.output}`, 'error');
+                setStatus('Failed', 'error');
+            } else {
+                log('✔ Remote origin set successfully!', 'success');
+                setStatus('Remote set', 'success');
+            }
         }
     </script>
 </body>

@@ -83,6 +83,35 @@ function randomHex(length) {
   return [...Array(length)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
 }
 
+// Storage unit path persistence helpers
+function getSavedStorageUnitPath() {
+  return localStorage.getItem('vericlasify_lastPath') || '';
+}
+
+function saveStorageUnitPath(path) {
+  if (path && path.trim()) {
+    localStorage.setItem('vericlasify_lastPath', path.trim());
+  }
+}
+
+// Auto-fill targetPath input if exists on page (unless data-no-autofill is set)
+function initTargetPathInput() {
+  const targetPathInput = document.getElementById('targetPath');
+  if (targetPathInput) {
+    // Skip auto-fill if data-no-autofill is set (for Create page)
+    if (!targetPathInput.dataset.noAutofill) {
+      const savedPath = getSavedStorageUnitPath();
+      if (savedPath) {
+        targetPathInput.value = savedPath;
+      }
+    }
+    // Save path on change (always save, even on Create page)
+    targetPathInput.addEventListener('change', () => {
+      saveStorageUnitPath(targetPathInput.value);
+    });
+  }
+}
+
 // Check server status on page load
 async function checkServerStatus() {
   const result = await apiCall('/status');
@@ -93,7 +122,15 @@ async function checkServerStatus() {
     return false;
   } else {
     log('✔ Connected to server', 'success');
-    log(`📁 Working dir: ${result.serverDir || result.data?.serverDir}`, 'info');
+
+    // Show user's selected storage unit path, not server directory
+    const savedPath = getSavedStorageUnitPath();
+    if (savedPath) {
+      log(`📁 Storage Unit: ${savedPath}`, 'info');
+    } else {
+      log('📁 No storage unit selected - enter path to start', 'warning');
+    }
+
     if (result.hasPinesu) {
       log('📦 Storage unit found', 'info');
     }
@@ -104,4 +141,5 @@ async function checkServerStatus() {
 // Initialize console on page load
 document.addEventListener('DOMContentLoaded', () => {
   checkServerStatus();
+  initTargetPathInput();
 });
