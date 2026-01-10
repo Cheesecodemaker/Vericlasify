@@ -173,7 +173,7 @@ app.post('/api/listfiles', (req, res) => {
         }
 
         // Check if it's a storage unit (support both new and legacy names)
-        let vericlPath = path.join(workingDir, files.VERICL_FILE);
+        let vericlPath = path.join(workingDir, files.VERICL_FOLDER, files.VERICL_FILE);
         if (!fs.existsSync(vericlPath)) {
             vericlPath = path.join(workingDir, '.pinesu.json'); // Legacy fallback
         }
@@ -259,7 +259,7 @@ app.post('/api/create', async (req, res) => {
 
         try {
             // Check for both new and legacy file names
-            if (files.fileExists(files.VERICL_FILE) || files.fileExists('.pinesu.json')) {
+            if (files.fileExists(path.join(files.VERICL_FOLDER, files.VERICL_FILE)) || files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'Storage unit already exists.' });
             }
@@ -347,8 +347,8 @@ app.post('/api/get-remote', async (req, res) => {
             return res.json({ success: false, error: `Directory not found: ${workingDir}` });
         }
 
-        // Check for .vericl.json or legacy .pinesu.json
-        let vericlPath = path.join(workingDir, files.VERICL_FILE);
+        // Check for .vericl/config.json or legacy .pinesu.json
+        let vericlPath = path.join(workingDir, files.VERICL_FOLDER, files.VERICL_FILE);
         if (!fs.existsSync(vericlPath)) {
             vericlPath = path.join(workingDir, '.pinesu.json');
         }
@@ -383,7 +383,7 @@ app.post('/api/stage', async (req, res) => {
 
         try {
             // Support both new and legacy file names
-            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
+            if (!files.fileExists(path.join(files.VERICL_FOLDER, files.VERICL_FILE)) && !files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'No storage unit found.' });
             }
@@ -437,7 +437,7 @@ app.post('/api/update', async (req, res) => {
 
         try {
             // Support both new and legacy file names
-            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
+            if (!files.fileExists(path.join(files.VERICL_FOLDER, files.VERICL_FILE)) && !files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'No storage unit found. Create one first.' });
             }
@@ -581,7 +581,7 @@ app.post('/api/checkbc', async (req, res) => {
 
         try {
             // Support both new and legacy file names
-            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
+            if (!files.fileExists(path.join(files.VERICL_FOLDER, files.VERICL_FILE)) && !files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'No storage unit found.' });
             }
@@ -658,7 +658,7 @@ app.post('/api/checkfile', async (req, res) => {
         let storageUnitDir = null;
 
         for (let i = 0; i < 10; i++) {
-            let testPath = path.join(currentDir, files.VERICL_FILE);
+            let testPath = path.join(currentDir, files.VERICL_FOLDER, files.VERICL_FILE);
             if (fs.existsSync(testPath)) {
                 vericlPath = testPath;
                 storageUnitDir = currentDir;
@@ -927,7 +927,7 @@ app.post('/api/close', async (req, res) => {
 
         try {
             // Support both new and legacy file names
-            if (!files.fileExists(files.VERICL_FILE) && !files.fileExists('.pinesu.json')) {
+            if (!files.fileExists(path.join(files.VERICL_FOLDER, files.VERICL_FILE)) && !files.fileExists('.pinesu.json')) {
                 process.chdir(originalCwd);
                 return res.json({ success: false, error: 'No storage unit found in this directory.' });
             }
