@@ -13,7 +13,7 @@ const treelist = require('./lib/treelist');
 const encryption = require('./lib/encryption');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const SERVER_DIR = __dirname;
 
 app.use(cors());
@@ -389,6 +389,12 @@ app.post('/api/stage', async (req, res) => {
             }
 
             const vericl = files.readVericlFile();
+
+            // Check if storage unit is closed
+            if (vericl.offhash && vericl.offhash.closed) {
+                process.chdir(originalCwd);
+                return res.json({ success: false, error: 'Cannot stage a closed storage unit.' });
+            }
 
             const sg = files.loadSG() || [];
             const alreadyStaged = sg.find(s => s.path === workingDir);

@@ -414,6 +414,9 @@
                 }
                 setStatus('Encrypted', 'success');
 
+                // Clear password field
+                document.getElementById('password').value = '';
+
                 // Reload file list
                 await loadFiles();
             } else {
@@ -467,6 +470,9 @@
                 log('');
                 log('ℹ Files are now editable. Remember to encrypt again when done.', 'info');
                 setStatus('Decrypted', 'success');
+
+                // Clear password field
+                document.getElementById('password').value = '';
 
                 // Reload file list
                 await loadFiles();
