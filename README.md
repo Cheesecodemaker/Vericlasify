@@ -125,3 +125,33 @@ Once all servers are running:
 - **Dashboard**: Open `http://localhost:3001` in your browser.
 - **AI Health Check**: Visit `http://localhost:5050/health`.
 - **Blockchain**: Ensure Ganache is listening on `http://127.0.0.1:8545`.
+
+### 7. Selenium Testing
+
+Automated UI tests are included using **Selenium + pytest**.
+
+#### Install Test Dependencies
+```bash
+pip install selenium pytest webdriver-manager pytest-html
+```
+
+#### Run Tests
+
+```bash
+# Terminal 1 — start the server
+node server.js
+
+# Terminal 2 — run tests + generate report
+python -m pytest tests/selenium_test.py -v --html=tests/test_report.html --self-contained-html
+```
+
+The generated `tests/test_report.html` is a self-contained HTML file — open it in any browser to view results.
+### 8. Viewing the Report
+
+You can open the generated HTML report with the default browser:
+
+```bash
+start .\tests\test_report.html
+```
+
+This command launches `test_report.html` in your system’s default web browser (Chrome, Edge, etc.). No additional server is required because the report is self‑contained.
