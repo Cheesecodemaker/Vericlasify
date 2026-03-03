@@ -142,16 +142,17 @@ pip install selenium pytest webdriver-manager pytest-html
 node server.js
 
 # Terminal 2 — run tests + generate report
-python -m pytest tests/selenium_test.py -v --html=tests/test_report.html --self-contained-html
+npm run test:selenium
+# or directly:
+python -m pytest tests/pytest/selenium_test.py -v --html=tests/pytest/test_report.html --self-contained-html
 ```
 
-The generated `tests/test_report.html` is a self-contained HTML file — open it in any browser to view results.
-### 8. Viewing the Report
+The generated `tests/pytest/test_report.html` is a self-contained HTML file — open it in any browser to view results.
 
-You can open the generated HTML report with the default browser:
+### 8. Viewing the Selenium Report
 
 ```bash
-start .\tests\test_report.html
+start .\tests\pytest\test_report.html
 ```
 
 ### 9. Blockchain Testing
@@ -160,18 +161,14 @@ The blockchain logic (Ethereum interactions and hashing) is verified using **Moc
 
 #### Run Tests
 
-Execute the following npm script to run all blockchain integration tests:
-
 ```bash
 npm run test:blockchain
 ```
 
 #### Viewing the Blockchain Test Report
 
-The above command automatically utilizes the `mochawesome` reporter to generate an interactive HTML report. You can view it by opening:
-
 ```bash
-start .\tests\blockchain_report\index.html
+start .\tests\blockchain\blockchain_report\index.html
 ```
 
 ### 10. System Performance Evaluation
@@ -180,16 +177,14 @@ A unified testing script evaluates both the blockchain network efficiency (Gas u
 
 #### Run Evaluation
 
-Execute the evaluation script via node:
-
 ```bash
-node tests/evaluate.js
+npm run test:evaluate
+# or directly:
+node tests/evaluation/evaluate.js
 ```
 
 #### Viewing the Evaluation Report
 
-The script will automatically generate a highly detailed `performance_report.html` file inside the `tests` directory. You can launch it using:
-
 ```bash
-start .\tests\performance_report.html
+start .\tests\evaluation\performance_report.html
 ```

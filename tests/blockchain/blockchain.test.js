@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('ethers');
 const ganache = require('ganache');
-const EthConnector = require('../connectors/ethConnector');
+const EthConnector = require('../../connectors/ethConnector');
 
 describe('Blockchain Integration Tests with Ethers.js', function () {
     this.timeout(20000); // 20 seconds timeout

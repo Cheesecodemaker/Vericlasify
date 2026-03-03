@@ -11,7 +11,9 @@
     "dev": "start cmd /k \"ganache-cli\" && start cmd /k \"node server.js\" && python classifier_api.py",
     "ui": "node server.js",
     "postinstall": "patch-package",
-    "test:blockchain": "mocha tests/blockchain.test.js --reporter mochawesome --reporter-options reportDir=tests/blockchain_report,reportFilename=index,html=true"
+    "test:blockchain": "mocha tests/blockchain/blockchain.test.js --reporter mochawesome --reporter-options reportDir=tests/blockchain/blockchain_report,reportFilename=index,html=true",
+    "test:evaluate": "node tests/evaluation/evaluate.js",
+    "test:selenium": "python -m pytest tests/pytest/selenium_test.py -v --html=tests/pytest/test_report.html --self-contained-html"
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
