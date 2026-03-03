@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Performance Evaluation Report</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f8fafc; color: #334155; }
+        h1 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        h2 { color: #1e293b; margin-top: 30px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
+        .metric-group { display: flex; gap: 20px; margin-bottom: 20px; }
+        .metric { background: #f1f5f9; padding: 15px; border-radius: 6px; flex: 1; text-align: center; border-left: 4px solid #3b82f6; }
+        .metric h3 { margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; color: #64748b; }
+        .metric p { margin: 0; font-size: 24px; font-weight: bold; color: #0f172a; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; font-weight: 600; color: #475569; }
+        tr:hover { background-color: #f1f5f9; }
+        .footer { margin-top: 40px; text-align: center; color: #94a3b8; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Vericlasify - System Performance Evaluation</h1>
+    <p>Comprehensive report measuring blockchain notarization efficiency and AI document classification accuracy.</p>
+
+    <div class="card">
+        <h2>Blockchain Efficiency</h2>
+        <p>Metrics derived from simulated automated document hash registrations on the Ethereum (Ganache) test network.</p>
+        <div class="metric-group">
+            <div class="metric">
+                <h3>Avg. Transaction Time</h3>
+                <p>41.58 ms</p>
+            </div>
+            <div class="metric">
+                <h3>Avg. Gas Used</h3>
+                <p>54,408 wei</p>
+            </div>
+            <div class="metric">
+                <h3>Network Latency</h3>
+                <p>Minimal (Local)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2> AI Classification Model Accuracy</h2>
+        <p>Performance of the AI module evaluated using a benchmark test dataset.</p>
+        <div class="metric-group">
+            <div class="metric" style="border-color: #10b981;">
+                <h3>Macro Precision</h3>
+                <p>67.92%</p>
+            </div>
+            <div class="metric" style="border-color: #10b981;">
+                <h3>Macro Recall</h3>
+                <p>70.00%</p>
+            </div>
+            <div class="metric" style="border-color: #10b981;">
+                <h3>Macro F1-Score</h3>
+                <p>68.21%</p>
+            </div>
+        </div>
+
+        <h3>Per-Class Breakdown</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Class Label</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-Score</th>
+                    <th>Support</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                <tr>
+                    <td>Research Paper</td>
+                    <td>50.0%</td>
+                    <td>50.0%</td>
+                    <td>50.0%</td>
+                    <td>4</td>
+                </tr>
+                
+                <tr>
+                    <td>Whitepaper</td>
+                    <td>80.0%</td>
+                    <td>80.0%</td>
+                    <td>80.0%</td>
+                    <td>5</td>
+                </tr>
+                
+                <tr>
+                    <td>Technical Report</td>
+                    <td>66.7%</td>
+                    <td>50.0%</td>
+                    <td>57.1%</td>
+                    <td>4</td>
+                </tr>
+                
+                <tr>
+                    <td>Review Article</td>
+                    <td>75.0%</td>
+                    <td>100.0%</td>
+                    <td>85.7%</td>
+                    <td>3</td>
+                </tr>
+                
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        Generated automatically during testing pipeline &bull; 3/3/2026, 8:54:26 pm
+    </div>
+</body>
+</html>
+    

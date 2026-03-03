@@ -154,4 +154,42 @@ You can open the generated HTML report with the default browser:
 start .\tests\test_report.html
 ```
 
-This command launches `test_report.html` in your system’s default web browser (Chrome, Edge, etc.). No additional server is required because the report is self‑contained.
+### 9. Blockchain Testing
+
+The blockchain logic (Ethereum interactions and hashing) is verified using **Mocha, Chai, and Ethers.js**. A dedicated `Ganache` instance is spun up automatically during tests.
+
+#### Run Tests
+
+Execute the following npm script to run all blockchain integration tests:
+
+```bash
+npm run test:blockchain
+```
+
+#### Viewing the Blockchain Test Report
+
+The above command automatically utilizes the `mochawesome` reporter to generate an interactive HTML report. You can view it by opening:
+
+```bash
+start .\tests\blockchain_report\index.html
+```
+
+### 10. System Performance Evaluation
+
+A unified testing script evaluates both the blockchain network efficiency (Gas usage, simulated transaction time) and the Multi-class AI model's accuracy (calculating Precision, Recall, and F1-Score on test data).
+
+#### Run Evaluation
+
+Execute the evaluation script via node:
+
+```bash
+node tests/evaluate.js
+```
+
+#### Viewing the Evaluation Report
+
+The script will automatically generate a highly detailed `performance_report.html` file inside the `tests` directory. You can launch it using:
+
+```bash
+start .\tests\performance_report.html
+```

@@ -10,7 +10,8 @@
     "ganache": "ganache-cli",
     "dev": "start cmd /k \"ganache-cli\" && start cmd /k \"node server.js\" && python classifier_api.py",
     "ui": "node server.js",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "test:blockchain": "mocha tests/blockchain.test.js --reporter mochawesome --reporter-options reportDir=tests/blockchain_report,reportFilename=index,html=true"
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
@@ -34,6 +35,11 @@
     "node": ">=14.0.0"
   },
   "devDependencies": {
+    "chai": "^4.5.0",
+    "ethers": "^6.16.0",
+    "ganache": "^7.9.2",
+    "mocha": "^11.7.5",
+    "mochawesome": "^7.1.4",
     "patch-package": "^8.0.1"
   }
 }

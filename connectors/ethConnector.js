@@ -36,7 +36,7 @@ class EthConnector {
         return receipt;
     }
 
-    async getBlock(blockNumber){
+    async getBlock(blockNumber) {
         return await this.#web3.eth.getBlock(blockNumber);
     }
 
@@ -52,7 +52,7 @@ class EthConnector {
                 return [res.from.toUpperCase() + w1.toUpperCase(), false];
             }
         } else {
-            return [res.from.toUpperCase() + w1.toUpperCase(), false];
+            return ["", false];
         }
     }
 }
